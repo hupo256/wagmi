@@ -28,7 +28,8 @@ export default function Signature() {
       >
         签名
       </button>
-      <div className="text-sm text-red-500 mt-2">{showSign ? showSign : signError?.message}</div>
+      {/* 签名结果 展示文字内容自动换行 */}
+      <div className="text-sm text-red-500 mt-2 break-words">{showSign ? showSign : signError?.message}</div>
     </section>
   );
 }

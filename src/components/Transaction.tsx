@@ -9,6 +9,15 @@ export default function Transaction() {
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("0.001");
 
+  // 发交交易
+  async function toSendTransaction() {
+    if (!to) return alert("请输入收款地址");
+    const param = { to: to as `0x${string}`, value: parseEther(amount) };
+    sendTransactionAsync(param)
+      .then((res) => console.log(`已发送, 交易哈希: ${res}`))
+      .catch((err) => console.log(err));
+  }
+
   return (
     <section>
       <h2 className="text-lg font-semibold mb-2">发送交易 (原生 ETH)</h2>
@@ -28,18 +37,7 @@ export default function Transaction() {
       </div>
       <button
         disabled={!isConnected || isTxPending}
-        onClick={async () => {
-          if (!to) return alert("请输入收款地址");
-          try {
-            const hash = await sendTransactionAsync({
-              to: to as `0x${string}`,
-              value: parseEther(amount),
-            });
-            alert(`已发送, 交易哈希: ${hash}`);
-          } catch (err) {
-            console.error(err);
-          }
-        }}
+        onClick={toSendTransaction}
         className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         发送

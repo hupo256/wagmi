@@ -9,7 +9,7 @@ export default function ConnectMan() {
   const { data: balance } = useBalance({
     address,
     chainId,
-    query: { enabled: Boolean(address) },
+    query: { enabled: !!address },
   });
 
   return (
