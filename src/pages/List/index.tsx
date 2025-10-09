@@ -6,7 +6,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { erc20Abi } from "viem";
+import { erc20Abi, parseEther } from "viem";
 
 const codeTex = "text-gray-600 border border-gray-200 p-2 rounded mb-4 bg-gray-100";
 const btnTex =
@@ -32,11 +32,32 @@ export default function List() {
   };
 
   const { data: balance, isLoading } = useReadContract({
-    address: "0x2d3Bb2C6927a5c4B72f5187E9F3e37C62516aC28",
+    address: "0xd0d5e3db44de05e9f294bb0a3bEEaF030DE24Ada",
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: ["0x742d35Cc6634C0532925a3b8D4C9db4C0d1c4567"],
+    args: ["0xC04033F77D16197B936026adf58b97F2123b8828"],
   });
+
+  const wethAddress = "0xd0d5e3db44de05e9f294bb0a3bEEaF030DE24Ada" as const;
+  const wethAbi = [
+    {
+      type: "function",
+      name: "deposit",
+      stateMutability: "payable",
+      inputs: [],
+      outputs: [],
+    },
+  ] as const;
+
+  const handleDeposit = async () => {
+    if (!isConnected) return;
+    writeContract({
+      address: wethAddress,
+      abi: wethAbi,
+      functionName: "deposit",
+      value: parseEther("0.01"),
+    });
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-8 font-sans">
@@ -69,6 +90,12 @@ export default function List() {
         <p className={codeTex}>{transText}</p>
         <button onClick={() => handleTransfer("0xqwrwefr2dfwe")} className={btnTex}>
           Transfer
+        </button>
+      </div>
+
+      <div className="mb-4">
+        <button disabled={!isConnected || isConfirming} onClick={handleDeposit} className={btnTex}>
+          存入 0.01 ETH → WETH
         </button>
       </div>
     </div>
