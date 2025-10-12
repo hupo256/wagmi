@@ -1,21 +1,19 @@
 import { createConfig, http } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
-import { injected, walletConnect } from "wagmi/connectors";
+import { hardhat } from "wagmi/chains";
 
-// VITE_WALLETCONNECT_PROJECT_ID is the projectId for WalletConnect
-const { VITE_WALLETCONNECT_PROJECT_ID } = import.meta.env;
+// import { defineChain } from "viem";
+// export const hardhat31337 = defineChain({
+//   id: 31337,
+//   name: "Hardhat",
+//   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+//   rpcUrls: { default: { http: ["http://127.0.0.1:8545"] } },
+// });
 
 export const config = createConfig({
-  chains: [sepolia],
+  chains: [hardhat],
   transports: {
-    [sepolia.id]: http(),
+    [hardhat.id]: http("http://127.0.0.1:8545"),
   },
-  // chains: [mainnet, sepolia],
-  // transports: {
-  //   [mainnet.id]: http(),
-  //   [sepolia.id]: http(),
-  // },
-  connectors: [injected(), walletConnect({ projectId: VITE_WALLETCONNECT_PROJECT_ID })],
 });
 
 declare module "wagmi" {
