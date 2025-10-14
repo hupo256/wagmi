@@ -42,7 +42,7 @@ export default function Transaction() {
       >
         发送
       </button>
-      <div className="text-sm mt-1">状态: {txStatus}</div>
+      <div className="text-sm mt-1 size-full md:size-auto">状态: {txStatus}</div>
       <div className="text-sm text-red-500 mt-1">{txError?.message}</div>
     </section>
   );

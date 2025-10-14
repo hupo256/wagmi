@@ -10,11 +10,6 @@ export const config = createConfig({
   transports: {
     [sepolia.id]: http(),
   },
-  // chains: [mainnet, sepolia],
-  // transports: {
-  //   [mainnet.id]: http(),
-  //   [sepolia.id]: http(),
-  // },
   connectors: [injected(), walletConnect({ projectId: VITE_WALLETCONNECT_PROJECT_ID })],
 });
 

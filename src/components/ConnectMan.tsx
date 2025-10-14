@@ -1,5 +1,6 @@
 import { useAccount, useBalance, useConnect, useDisconnect, useChainId } from "wagmi";
-import { formatUnits } from "viem";
+import TransferButton from "./TransferButton";
+import { formatUnits, type Address } from "viem";
 
 export default function ConnectMan() {
   const { address, isConnected } = useAccount();
@@ -28,13 +29,15 @@ export default function ConnectMan() {
           >
             断开连接
           </button>
+
+          <TransferButton to={address as Address} />
         </div>
       ) : (
         <div>
           <div className="flex flex-wrap gap-2">
             {connectors.map((c) => (
               <button
-                key={(c as any).uid ?? c.id}
+                key={c.uid}
                 disabled={isConnectPending}
                 onClick={() => connect({ connector: c as any })}
                 className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"

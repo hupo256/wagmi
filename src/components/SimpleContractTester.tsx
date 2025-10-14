@@ -1,43 +1,50 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { useState } from "react";
+import counterData from "../contracts/Counter.json";
 import NetworkChecker from "./NetworkChecker";
 
+import { Abi } from "viem";
+
+const SIMPLE_CONTRACT_ADDRESS = (counterData as { address: `0x${string}` }).address;
+const SIMPLE_CONTRACT_ABI = counterData.abi as Abi;
+
 // 这是一个在 Sepolia 上已经部署的简单合约地址
-// 您也可以使用 Remix 或其他工具部署自己的合约
 // const SIMPLE_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as `0x${string}`;
-const SIMPLE_CONTRACT_ADDRESS = "0x6cee97953141d8437981f405a99c4fef39cb4b60" as `0x${string}`;
+
+// 也可以使用 Remix 或其他工具部署自己的合约
+// const SIMPLE_CONTRACT_ADDRESS = "0x6cee97953141d8437981f405a99c4fef39cb4b60" as `0x${string}`;
 
 // 简单合约的 ABI - 包含基本的读写功能
-const SIMPLE_CONTRACT_ABI = [
-  {
-    inputs: [],
-    name: "getValue",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_value", type: "uint256" }],
-    name: "setValue",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "increment",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "decrement",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+// const SIMPLE_CONTRACT_ABI = [
+//   {
+//     inputs: [],
+//     name: "getValue",
+//     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+//     stateMutability: "view",
+//     type: "function",
+//   },
+//   {
+//     inputs: [{ internalType: "uint256", name: "_value", type: "uint256" }],
+//     name: "setValue",
+//     outputs: [],
+//     stateMutability: "nonpayable",
+//     type: "function",
+//   },
+//   {
+//     inputs: [],
+//     name: "increment",
+//     outputs: [],
+//     stateMutability: "nonpayable",
+//     type: "function",
+//   },
+//   {
+//     inputs: [],
+//     name: "decrement",
+//     outputs: [],
+//     stateMutability: "nonpayable",
+//     type: "function",
+//   },
+// ] as const;
 
 const codeTex = "text-gray-600 border border-gray-200 p-2 rounded mb-4 bg-gray-100";
 const btnTex = "inline-flex items-center rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 mr-2 mb-2";
@@ -59,6 +66,8 @@ export default function SimpleContractTester() {
     abi: SIMPLE_CONTRACT_ABI,
     functionName: "getValue",
   });
+
+  console.log("contractValue   =>", contractValue);
 
   // 设置值
   const handleSetValue = () => {
