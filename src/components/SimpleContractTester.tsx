@@ -67,8 +67,6 @@ export default function SimpleContractTester() {
     functionName: "getValue",
   });
 
-  console.log("contractValue   =>", contractValue);
-
   // 设置值
   const handleSetValue = () => {
     writeContract({

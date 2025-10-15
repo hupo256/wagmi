@@ -5,11 +5,11 @@ import { parseEther } from "viem";
 import { simpleStorageAbi } from "@abis/simpleStorageAbi"; // 把上面的 ABI 存为 abi.ts
 // import { simpleStorageAbi } from "../abis/simpleStorageAbi"; // 把上面的 ABI 存为 abi.ts
 
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const CONTRACT_ADDRESS = "0x6cee97953141d8437981f405a99c4fef39cb4b60";
 
 export default function TestContract() {
   const { address } = useAccount();
-  const [newNumber, setNewNumber] = useState("42");
+  const [newNumber, setNewNumber] = useState("24");
 
   // 1️⃣ 读取余额（当前存储的值）
   const { data: currentValue, refetch } = useReadContract({
@@ -17,6 +17,8 @@ export default function TestContract() {
     abi: simpleStorageAbi,
     functionName: "retrieve",
   });
+
+  console.log(currentValue);
 
   // 2️⃣ 发送交易（写入新值）
   const { writeContract, isPending } = useWriteContract();
@@ -47,7 +49,7 @@ export default function TestContract() {
 
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h2>🧪 wagmi 合约测试</h2>
+      <h2>🧪 wagmi 合约测试 ✅ ✅ </h2>
 
       <p>
         <strong>当前值:</strong> {currentValue?.toString() ?? "Loading..."}
