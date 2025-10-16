@@ -1,14 +1,20 @@
 // TestContract.tsx
 import { useState, useEffect } from "react";
-import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } from "wagmi";
-import { simpleStorageAbi } from "@abis/simpleStorageAbi"; // 把上面的 ABI 存为 abi.ts
+import { useAccount, useBalance, useReadContract, useWriteContract, useWatchContractEvent } from "wagmi";
+import { simpleStorageAbi, Abi } from "@abis/simpleStorageAbi"; // 把上面的 ABI 存为 abi.ts
 
 // const CONTRACT_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+const CONTRACT_ADDRESS = "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0";
 
 export default function TestContract() {
-  const { address } = useAccount();
-  const [newNumber, setNewNumber] = useState("24");
+  const { address, chainId } = useAccount();
+  const { writeContract, isPending } = useWriteContract();
+  const [newNumber, setNewNumber] = useState("");
+  const { data: balance } = useBalance({
+    address,
+    chainId: chainId as 31337 | undefined,
+    query: { enabled: !!address },
+  });
 
   // 1️⃣ 读取余额（当前存储的值）
   const { data: currentValue, refetch } = useReadContract({
@@ -18,7 +24,12 @@ export default function TestContract() {
   });
 
   // 2️⃣ 发送交易（写入新值）
-  const { writeContract, isPending } = useWriteContract();
+
+  useEffect(() => {
+    if (currentValue !== undefined) {
+      console.log("✅ currentValue:", currentValue);
+    }
+  }, [currentValue]);
 
   const toStore = () => {
     writeContract({
@@ -27,6 +38,11 @@ export default function TestContract() {
       functionName: "store",
       args: [BigInt(newNumber)],
     });
+  };
+
+  const handleManualRefresh = () => {
+    refetch(); // 手动刷新
+    console.log("✅ 手动刷新完成");
   };
 
   // 3️⃣ 监听事件
@@ -55,6 +71,10 @@ export default function TestContract() {
           onClick={() => toStore()}
         >
           {isPending ? "发送中..." : "写入新值"}
+        </button>
+
+        <button onClick={handleManualRefresh} style={{ marginLeft: "8px" }}>
+          🔁 手动刷新
         </button>
       </div>
 
