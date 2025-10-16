@@ -1,11 +1,13 @@
-// wagmi.config.ts
-import { createConfig, http, Config } from "wagmi";
+import { createConfig, http, Config, webSocket, fallback } from "wagmi";
 import { anvil } from "./localChain";
 
 export const config: Config = createConfig({
   chains: [anvil],
   transports: {
-    [anvil.id]: http("http://127.0.0.1:8545"),
+    [anvil.id]: webSocket("ws://127.0.0.1:8545"),
+
+    // 或者同时支持 HTTP 和 WebSocket（推荐）
+    // [anvil.id]: fallback([webSocket("ws://127.0.0.1:8545"), http("http://127.0.0.1:8545")]),
   },
 });
 

@@ -1,21 +1,19 @@
-// TestContract.tsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAccount, useBalance, useReadContract, useWriteContract, useWatchContractEvent } from "wagmi";
-import { simpleStorageAbi, Abi } from "@abis/simpleStorageAbi"; // 把上面的 ABI 存为 abi.ts
+import { simpleStorageAbi } from "@abis/simpleStorageAbi"; // 合约对应的 ABI
 
-// const CONTRACT_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+// 这个是部署好的合约地址
 const CONTRACT_ADDRESS = "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0";
 
 export default function TestContract() {
   const { address, chainId } = useAccount();
-  const { writeContract, isPending } = useWriteContract();
+  const { writeContract, isPending } = useWriteContract(); // 2️⃣ 发送交易（写入新值）
   const [newNumber, setNewNumber] = useState("");
   const { data: balance } = useBalance({
     address,
     chainId: chainId as 31337 | undefined,
     query: { enabled: !!address },
   });
-
   // 1️⃣ 读取余额（当前存储的值）
   const { data: currentValue, refetch } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -23,27 +21,19 @@ export default function TestContract() {
     functionName: "retrieve",
   });
 
-  // 2️⃣ 发送交易（写入新值）
-
-  useEffect(() => {
-    if (currentValue !== undefined) {
-      console.log("✅ currentValue:", currentValue);
-    }
-  }, [currentValue]);
-
-  const toStore = () => {
+  function toStore() {
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: simpleStorageAbi,
       functionName: "store",
       args: [BigInt(newNumber)],
     });
-  };
+  }
 
-  const handleManualRefresh = () => {
+  function toRefresh() {
     refetch(); // 手动刷新
-    console.log("✅ 手动刷新完成");
-  };
+    setNewNumber("");
+  }
 
   // 3️⃣ 监听事件
   useWatchContractEvent({
@@ -52,7 +42,7 @@ export default function TestContract() {
     eventName: "ValueChanged",
     onLogs(logs) {
       console.log("✅ Event:", logs);
-      refetch();
+      toRefresh();
     },
   });
 
@@ -73,7 +63,7 @@ export default function TestContract() {
           {isPending ? "发送中..." : "写入新值"}
         </button>
 
-        <button onClick={handleManualRefresh} style={{ marginLeft: "8px" }}>
+        <button onClick={toRefresh} style={{ marginLeft: "8px" }}>
           🔁 手动刷新
         </button>
       </div>

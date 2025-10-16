@@ -7,9 +7,8 @@ export default function TransferButton({ to }: { to: Address }) {
 
   const sendTransfer = () => {
     writeContract({
-      address: "0x...", // 你的合约地址
+      address: "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0", // 你的合约地址
       abi: erc20Abi, // 合约 ABI
-      // abi: [...],       // 合约 ABI
       functionName: "transfer",
       args: [to, parseEther("0.1")],
     });
