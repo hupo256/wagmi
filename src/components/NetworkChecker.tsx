@@ -9,9 +9,7 @@ export default function NetworkChecker() {
   const isSepolia = chainId === sepolia.id;
   const isCorrectNetwork = isSepolia;
 
-  if (!isConnected) {
-    return null;
-  }
+  if (!isConnected) return null;
 
   if (!isCorrectNetwork) {
     return (

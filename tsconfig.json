@@ -20,7 +20,11 @@
       "@components/*": ["./src/components/*"],
       "@common/*": ["./src/common/*"],
       "@contracts/*": ["./src/contracts/*"],
-      "@pages/*": ["./src/pages/*"]
+      "@pages/*": ["./src/pages/*"],
+      "@store/*": ["./src/store/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@types/*": ["./src/types/*"]
     }
   },
   "include": ["src"],

@@ -13,6 +13,8 @@ export default defineConfig({
       "@common": "/src/common",
       "@contracts": "/src/contracts",
       "@pages": "/src/pages",
+      "@store": "/src/store",
+      "@utils": "/src/utils",
     },
   },
 });

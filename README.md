@@ -38,7 +38,7 @@ pnpm install
 VITE_WALLETCONNECT_PROJECT_ID=你的_walletconnect_project_id
 ```
 
-- 项目读取位置：`src/wagmi.ts`
+- 项目读取位置：`src/wagmi.config.ts`
 - 未配置也可使用 Injected（MetaMask 等）直接连接
 
 3. 启动开发服务器
@@ -51,24 +51,90 @@ pnpm dev
 
 ## 网络与链配置
 
-- 默认链：Sepolia（链 ID 11155111）
-- 配置文件：`src/wagmi.ts`
+- 默认链：Sepolia（链 ID 11155111）或本地 Hardhat（链 ID 31337）
+- 配置文件：`src/wagmi.ts`、`src/localChain.ts`
 - 传输：`http()`（使用默认 RPC，建议替换为你自己的 RPC）
 
-若需启用主网或多链，可在 `src/wagmi.ts` 中调整 `chains` 与 `transports` 注释段。
+### 本地链（Hardhat）说明
+
+如需本地开发和调试，推荐使用 Hardhat：
+
+1. 安装 hardhat（如未安装）
+
+```bash
+pnpm add -D hardhat
+```
+
+2. 启动本地链
+
+```bash
+npx hardhat node
+```
+
+3. 部署合约（参考 CONTRACT_DEPLOYMENT_GUIDE.md）
+4. 将本地链地址填入 `src/pages/List.tsx`、`src/abis/simpleStorageAbi.ts` 等相关文件
+5. MetaMask 添加本地网络：
+
+- 网络名称: Hardhat
+- RPC URL: http://127.0.0.1:8545
+- 链 ID: 31337
+
+如需切换到本地链，请确保 `CONTRACT_ADDRESS`、`chainId` 等参数已正确设置。
 
 ## 合约交互
 
-- 综合页面：`src/components/ContractTester.tsx`（路由 `/contracts`）
-  - 测试合约地址内置：USDC（Sepolia）、WETH（Sepolia）、示例存储与计数器（示例地址）
-  - 可直接读余额、发送 ERC20 转账、读写存储合约、调用计数器合约
-- 简化页面：`src/components/SimpleContractTester.tsx`（路由 `/simple-contract`）
-  - 常量 `SIMPLE_CONTRACT_ADDRESS` 为合约地址，可替换为你部署的地址
+## 合约交互与事件监听
 
-如需部署你自己的测试合约，请参阅：
+- 简单存储合约交互：`src/pages/List.tsx`
+  - 读取当前值、写入新值
+  - 监听 `ValueChanged` 事件，自动刷新页面
+  - 事件监听逻辑：
+    ```tsx
+    useWatchContractEvent({
+      address: CONTRACT_ADDRESS,
+      abi: simpleStorageAbi,
+      eventName: "ValueChanged",
+      chainId: chainId as 31337 | undefined,
+      onLogs(logs) {
+        console.log("✅ Event:", logs);
+        refetch();
+      },
+      onError(error) {
+        console.error("Event watching error:", error);
+      },
+    });
+    ```
 
-- `CONTRACT_DEPLOYMENT_GUIDE.md`（Remix/Foundry 部署步骤、示例合约）
-- 部署完成后将地址填入对应组件的常量处
+### 事件监听与调试建议
+
+- 若事件未触发：
+  1. 检查合约地址与 ABI 是否正确
+  2. 确认链 ID 与钱包网络一致（Sepolia 或 Hardhat）
+  3. 打开浏览器控制台，观察事件日志与错误输出
+  4. 检查合约实现是否 emit 了事件
+  5. 确认交易已成功上链
+
+- 推荐在本地链调试，便于快速定位问题。
+
+## 相关文件快速索引
+
+```text
+├─ src
+│  ├─ App.tsx                 # 路由与导航
+│  ├─ main.tsx                # 入口，挂载 Provider 与 App
+│  ├─ wagmi.ts                # wagmi 配置（链、连接器、RPC）
+│  ├─ localChain.ts           # 本地链配置（Hardhat）
+│  ├─ abis/
+│  │  └─ simpleStorageAbi.ts  # 简单存储合约 ABI
+│  ├─ pages/
+│  │  ├─ List.tsx             # 简单存储合约读写与事件监听
+│  │  ├─ Home.tsx             # 首页
+│  │  └─ Details.tsx          # 详情页
+│  └─ components/
+│     ├─ ConnectMan.tsx       # 钱包连接
+│     ├─ NetworkChecker.tsx   # 网络检查
+│     └─ TokenBalance.tsx     # ERC20 余额查询
+```
 
 ## 网络检查（必读）
 

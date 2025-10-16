@@ -1,12 +1,15 @@
 import { useAccount, useSendTransaction } from "wagmi";
 import { parseEther } from "viem";
 import { useState } from "react";
+import { useContractor } from "@store/index";
+import { testAddr } from "@common/addressMan";
 
 export default function Transaction() {
   const { isConnected } = useAccount();
+  const { setIsRefresh } = useContractor();
   const { sendTransactionAsync, isPending: isTxPending, status: txStatus, error: txError } = useSendTransaction();
 
-  const [to, setTo] = useState("");
+  const [to, setTo] = useState(testAddr);
   const [amount, setAmount] = useState("0.001");
 
   // 发交交易
@@ -14,7 +17,10 @@ export default function Transaction() {
     if (!to) return alert("请输入收款地址");
     const param = { to: to as `0x${string}`, value: parseEther(amount) };
     sendTransactionAsync(param)
-      .then((res) => console.log(`已发送, 交易哈希: ${res}`))
+      .then((res) => {
+        console.log(`已发送, 交易哈希: ${res}`);
+        setIsRefresh(true);
+      })
       .catch((err) => console.log(err));
   }
 
