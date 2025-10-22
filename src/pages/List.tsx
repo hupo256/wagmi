@@ -43,7 +43,7 @@ export default function TestContract() {
 
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h2 className="mb-4">🧪 wagmi 合约测试 ✅ ✅ </h2>
+      <h2 className="mb-4">🧪 wagmi 合约测试 ✅ </h2>
 
       <p className="">
         <strong>当前值:</strong> {currentValue?.toString() ?? "Loading..."}

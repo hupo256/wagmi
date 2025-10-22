@@ -22,16 +22,17 @@ export default function USDCPanel() {
   };
 
   return (
-    <div>
+    <div className="text-gray-500 border p-4 rounded-md bg-white">
       <h3>USDC (Sepolia)</h3>
       <p>Balance: {loadingBalance ? "Loading..." : `${balance} USDC`}</p>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="my-3 flex gap-2">
         <input
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Amount to approve"
+          className="border p-2 rounded-md"
         />
         <button
           onClick={handleApprove}
