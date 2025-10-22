@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import USDCPanel from "@/components/USDCPanel";
 
 export default function Details() {
   const [searchParams] = useSearchParams();
@@ -6,8 +7,9 @@ export default function Details() {
 
   return (
     <div className="max-w-3xl mx-auto p-8 font-sans">
-      <h1 className="text-2xl font-bold mb-4">Details</h1>
-      <p className="text-gray-700 dark:text-gray-300">这里是详情页占位{id ? `（id=${id}）` : ""}。</p>
+      <h1 className="text-2xl font-bold mb-4">Details: {id}</h1>
+
+      <USDCPanel />
     </div>
   );
 }
