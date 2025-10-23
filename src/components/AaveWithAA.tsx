@@ -27,7 +27,7 @@ export default function AaveWithAA() {
   const { apy } = useAaveUSDCAPY();
 
   // UI State
-  const [amount, setAmount] = useState<string>("10");
+  const [amount, setAmount] = useState<string>("5");
   const [mode, setMode] = useState<"eoa" | "aa">("aa"); // 默认 AA 模式
   const [isProcessing, setIsProcessing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -42,6 +42,18 @@ export default function AaveWithAA() {
     try {
       const smartAccount = await getSmartAccountClient();
       const amountInWei = BigInt(Math.floor(amt * 1e6));
+
+      console.log("smartAccount:", smartAccount);
+      // 兼容不同版本的 Biconomy SDK：部分版本提供 getAccountAddress、部分提供 getAddress / getCounterFactualAddress
+      let smartAccountAddress: string | undefined;
+      if (typeof smartAccount.getAccountAddress === "function") {
+        smartAccountAddress = await smartAccount.getAccountAddress();
+      } else if (typeof smartAccount.getAddress === "function") {
+        smartAccountAddress = await smartAccount.getAddress();
+      } else if (typeof smartAccount.getCounterFactualAddress === "function") {
+        smartAccountAddress = await smartAccount.getCounterFactualAddress();
+      }
+      console.log("Smart Account Address:", smartAccountAddress);
 
       // Encode deposit call
       const depositCallData = encodeFunctionData({
@@ -91,15 +103,7 @@ export default function AaveWithAA() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "2rem auto",
-        padding: "1.5rem",
-        border: "1px solid #eee",
-        borderRadius: "12px",
-      }}
-    >
+    <div className="text-gray-500 border p-4 rounded-md bg-white">
       <h2>🏦 Aave USDC Deposit (with AA)</h2>
 
       {/* Mode Toggle */}
@@ -111,7 +115,7 @@ export default function AaveWithAA() {
         <label>
           <input type="radio" checked={mode === "aa"} onChange={() => setMode("aa")} /> AA (Biconomy Smart Account)
         </label>
-        <p style={{ fontSize: "0.9em", color: "#666" }}>
+        <p className="text-sm text-gray-600 pt-4">
           {mode === "aa" ? "✅ Gas abstracted — transaction may be paid in USDC" : "⛽ You pay ETH gas"}
         </p>
       </div>
@@ -131,16 +135,18 @@ export default function AaveWithAA() {
       </p>
 
       {/* Input & Button */}
-      <div style={{ marginTop: "1.5rem" }}>
+      <div className="my-3 flex gap-2">
         <input
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Amount to deposit"
+          className="border p-2 rounded-md"
           style={{ padding: "8px", marginRight: "8px", width: "120px" }}
         />
         <button
           onClick={handleDeposit}
+          className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
           disabled={isProcessing || !address}
           style={{
             padding: "8px 16px",

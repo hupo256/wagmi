@@ -11,11 +11,11 @@ export default function Details() {
   return (
     <div className="flex flex-col gap-4 max-w-3xl mx-auto p-8 font-sans">
       <h1 className="text-2xl font-bold mb-4">Details: {id}</h1>
+      <AaveWithAA />
 
       <USDCPanel />
       <AaveDepositPanel />
       <AaveFullPanel />
-      {/* <AaveWithAA /> */}
     </div>
   );
 }
