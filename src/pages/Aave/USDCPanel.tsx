@@ -4,7 +4,7 @@ import { useUSDCBalance, useApproveUSDC } from "@/hooks/useUSDC";
 
 // Aave V3 LendingPool 地址（Sepolia）
 const AAVE_LENDING_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-
+// 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 export default function USDCPanel() {
   const { balance, isLoading: loadingBalance } = useUSDCBalance();
   const { approve, isApproving } = useApproveUSDC();

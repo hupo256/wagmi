@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import List from "./pages/List";
+import Aave from "./pages/Aave";
 import Details from "./pages/Details";
 import ContractTester from "./components/ContractTester";
 import SimpleContractTester from "./components/SimpleContractTester";
@@ -13,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/home" element={<Home />} />
         <Route path="/list" element={<List />} />
+        <Route path="/aave" element={<Aave />} />
         <Route path="/details" element={<Details />} />
         <Route path="/contracts" element={<ContractTester />} />
         <Route path="/simple-contract" element={<SimpleContractTester />} />
