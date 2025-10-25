@@ -4,8 +4,6 @@ import { sepolia } from "wagmi/chains";
 export const config = createConfig({
   chains: [sepolia],
   transports: {
-    // [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"), // 支持 CORS
-
     [sepolia.id]: webSocket("wss://ethereum-sepolia-rpc.publicnode.com"),
   },
 });

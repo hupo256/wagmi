@@ -71,7 +71,14 @@ export default function AaveWithAA() {
       });
 
       const receipt = await userOpResponse.wait();
-      setTxHash(receipt.transactionHash);
+      // userOp receipt shape may vary between SDK versions. try common fields.
+      const tx = (receipt as any)?.transactionHash ?? (receipt as any)?.userOpHash ?? (receipt as any)?.hash ?? null;
+      if (tx) {
+        setTxHash(tx);
+      } else {
+        console.warn("AA deposit receipt has no transaction hash:", receipt);
+        setTxHash(null);
+      }
       alert("Deposit via AA successful!");
     } catch (err) {
       console.error("AA Deposit failed:", err);

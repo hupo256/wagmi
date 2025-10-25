@@ -11,8 +11,4 @@ export const config: Config = createConfig({
   },
 });
 
-declare module "wagmi" {
-  interface Register {
-    config: Config;
-  }
-}
+// module augmentation intentionally omitted here to avoid duplicate declarations

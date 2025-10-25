@@ -2,7 +2,7 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "cSpell.words": ["viem", "wagmi", "keccak256", "tailwind"],
+  "cSpell.words": ["viem", "wagmi", "keccak256", "tailwind", "biconomy"],
   "eslint.workingDirectories": [{ "mode": "auto" }],
   // https://github.com/tailwindlabs/tailwindcss-intellisense?tab=readme-ov-file#editorquicksuggestions
   "editor.quickSuggestions": {
