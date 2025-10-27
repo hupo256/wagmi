@@ -1,10 +1,8 @@
 // hooks/useAaveDepositAA.ts
 import { parseAbi } from "viem";
 import { useAccount } from "wagmi";
+import { AAVE_POOL_ADDRESS, USDC_ADDRESS } from "@/config/aave";
 import { useSmartAccountClient } from "./useSmartAccountClient";
-
-const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 
 export function useAaveDepositAA() {
   const { address } = useAccount();

@@ -1,18 +1,15 @@
-// components/USDCPanel.tsx
 import { useState } from "react";
 import { useUSDCBalance, useApproveUSDC } from "@/hooks/useUSDC";
+import { AAVE_POOL_ADDRESS } from "@/config/aave";
 
-// Aave V3 LendingPool 地址（Sepolia）
-const AAVE_LENDING_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-// 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 export default function USDCPanel() {
   const { balance, isLoading: loadingBalance } = useUSDCBalance();
   const { approve, isApproving } = useApproveUSDC();
-  const [amount, setAmount] = useState<string>("100");
+  const [amount, setAmount] = useState<string>("5");
 
   const handleApprove = async () => {
     try {
-      const txHash = await approve(AAVE_LENDING_POOL, parseFloat(amount));
+      const txHash = await approve(AAVE_POOL_ADDRESS, parseFloat(amount));
       console.log("Approval tx:", txHash);
       alert("Approval successful!");
     } catch (err) {

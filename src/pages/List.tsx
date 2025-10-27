@@ -42,28 +42,38 @@ export default function TestContract() {
   });
 
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h2 className="mb-4">🧪 wagmi 合约测试 ✅ </h2>
+    <div className="p-4 space-y-4 text-sans">
+      <h2 className="mb-4 text-xl font-medium">wagmi 合约测试 ✅ </h2>
 
-      <p className="">
+      <p className="font-medium">
         <strong>当前值:</strong> {currentValue?.toString() ?? "Loading..."}
       </p>
 
-      <div style={{ marginTop: "16px" }}>
-        <input type="number" value={newNumber} onChange={(e) => setNewNumber(e.target.value)} placeholder="输入新值" />
+      <div className="mt-4 flex space-x-4">
+        <input
+          type="number"
+          value={newNumber}
+          onChange={(e) => setNewNumber(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="输入新值"
+        />
         <button
           className="mt-2 inline-flex items-center rounded-md bg-gray-200 px-3 py-1 text-sm hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-          onClick={() => toStore()}
+          onClick={toStore}
+          disabled={isPending}
         >
           {isPending ? "发送中..." : "写入新值"}
         </button>
 
-        <button onClick={toRefresh} style={{ marginLeft: "8px" }}>
+        <button
+          className="mt-2 inline-flex items-center rounded-md bg-gray-200 px-3 py-1 text-sm hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+          onClick={toRefresh}
+        >
           🔁 手动刷新
         </button>
       </div>
 
-      <p style={{ marginTop: "20px", fontSize: "14px", color: "#666" }}>打开控制台查看事件日志 🎯</p>
+      <p className="mt-4 text-gray-600">打开控制台查看事件日志 🎯</p>
     </div>
   );
 }

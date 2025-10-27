@@ -1,5 +1,4 @@
 import { useWalletClient } from "wagmi";
-// import { smartData } from "@/common/smartData";
 import type { BiconomySmartAccountV2 } from "@biconomy/account";
 // 注意：不要在顶层静态导入 @biconomy/account，因为其打包产物可能在模块初始化时访问 `process` 等 Node 全局。
 // 改为在需要时动态导入，保证浏览器环境不会在模块评估阶段抛出 `process is not defined`。

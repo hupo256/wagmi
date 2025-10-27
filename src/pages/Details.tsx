@@ -1,3 +1,4 @@
+// Details.tsx
 import { useWalletClient, useAccount, useBalance } from "wagmi";
 import { useState } from "react";
 import { parseUnits } from "viem";
@@ -31,22 +32,58 @@ export default function Home() {
 
       // 1. 创建 Biconomy 智能账户
       const smartAccount = await createBiconomyAccount(walletClient);
-      const userOpResponse = await smartAccount.sendTransaction({
-        to: AAVE_POOL_ADDRESS,
-        data: encodeFunctionData({
-          abi: AAVE_POOL_ABI,
-          functionName: "deposit",
-          args: [USDC_ADDRESS, parseUnits("10", 6), address, 0], // 存 10 USDC
-        }),
+
+      setStatus("Building transaction...");
+
+      // 2. 构建交易数据
+      const depositData = encodeFunctionData({
+        abi: AAVE_POOL_ABI,
+        functionName: "deposit",
+        args: [USDC_ADDRESS, parseUnits("10", 6), address, 0], // 存 10 USDC
       });
+
+      console.log("Transaction data:", {
+        to: AAVE_POOL_ADDRESS,
+        data: depositData,
+      });
+
+      setStatus("Sending transaction...");
+
+      // 3. 发送交易并增加错误处理
+      const tx = {
+        to: AAVE_POOL_ADDRESS as `0x${string}`,
+        data: depositData,
+      };
+
+      // 先预估用户操作
+      const userOp = await smartAccount.buildUserOp([tx]);
+      console.log("Built UserOp:", userOp);
+
+      // 发送用户操作
+      const userOpResponse = await smartAccount.sendUserOp(userOp);
+      console.log("UserOp Response:", userOpResponse);
+
+      if (!userOpResponse) {
+        throw new Error("Failed to send transaction - no response received");
+      }
 
       setStatus("Transaction sent. Waiting for confirmation...");
       const receipt = await userOpResponse.wait();
       console.log("UserOp receipt:", receipt);
       setStatus("✅ Deposit successful!");
-    } catch (error) {
-      console.error(error);
-      setStatus("❌ Failed: " + (error as Error).message);
+    } catch (error: any) {
+      console.error("Detailed error:", error);
+      console.error("Error stack:", error.stack);
+
+      // 提供更详细的错误信息
+      let errorMessage = "Unknown error occurred";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      setStatus(`❌ Failed: ${errorMessage}`);
     } finally {
       setIsDepositing(false);
     }
@@ -54,7 +91,7 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-lg">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">DeFi + Account Abstraction Demo</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">DeFi + Account Abstraction</h1>
 
       {/* 账户和余额信息 */}
       <div className="space-y-4 mb-8">
