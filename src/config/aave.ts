@@ -1,0 +1,6 @@
+export const SEPOLIA_CHAIN_ID = 11155111;
+
+// Aave V3 Sepolia Addresses
+export const AAVE_LENDING_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
+export const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"; // Circle USDC
+export const USDC_DECIMALS = 6;

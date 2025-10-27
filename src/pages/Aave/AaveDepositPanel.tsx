@@ -8,7 +8,7 @@ const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
 export default function AaveDepositPanel() {
   const { balance } = useUSDCBalance();
   const { approve, isApproving } = useApproveUSDC();
-  const { deposit, isDepositing } = useAaveDeposit();
+  const { depositUSDC: deposit, isDepositing } = useAaveDeposit();
   const [amount, setAmount] = useState<string>("10");
 
   const handleApproveAndDeposit = async () => {

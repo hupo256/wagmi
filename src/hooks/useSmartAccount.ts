@@ -1,14 +1,13 @@
-// src/hooks/useSmartAccount.ts
 import { useState, useEffect } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { useSmartAccountClient } from "./useSmartAccountClient";
+import { type BiconomySmartAccountV2 } from "@biconomy/account";
+import { BICONOMY_CONFIG } from "@/config/biconomy";
+import { SEPOLIA_CHAIN_ID } from "@/config/aave";
 
 export const useSmartAccount = () => {
   const { address: eoaAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const { getSmartAccountClient } = useSmartAccountClient();
-
-  const [smartAccount, setSmartAccount] = useState<any | null>(null);
+  const [smartAccount, setSmartAccount] = useState<BiconomySmartAccountV2 | null>(null);
   const [smartAccountAddress, setSmartAccountAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +15,8 @@ export const useSmartAccount = () => {
     let mounted = true;
 
     const init = async () => {
-      setLoading(true);
+      if (!mounted) return;
+
       setSmartAccount(null);
       setSmartAccountAddress(null);
 
@@ -26,34 +26,61 @@ export const useSmartAccount = () => {
       }
 
       try {
-        const client = await getSmartAccountClient();
-        if (!mounted) return;
-
-        let addr: string;
-        // 兼容不同版本的 SDK：尝试各种可能的方法获取地址
-        if (typeof client.getAccountAddress === "function") {
-          addr = await client.getAccountAddress();
-        } else if (typeof client.getAddress === "function") {
-          addr = await client.getAddress();
-        } else if (typeof client.getCounterFactualAddress === "function") {
-          addr = await client.getCounterFactualAddress();
-        } else {
-          throw new Error("No method available to get smart account address");
+        // 初始化前的 process polyfill
+        if (typeof (globalThis as any).process === "undefined") {
+          try {
+            (globalThis as any).process = { env: {} };
+          } catch (e) {
+            console.warn("Failed to add process polyfill:", e);
+          }
         }
 
-        if (!addr || typeof addr !== "string" || !addr.startsWith("0x")) {
-          throw new Error(`Invalid smart account address: ${addr}`);
+        // 使用 dynamic import 导入 createSmartAccountClient
+        const { createSmartAccountClient } = await import("@biconomy/account");
+
+        // 创建智能账户实例
+        const createConfig: any = {
+          signer: walletClient,
+          bundlerUrl: BICONOMY_CONFIG.bundlerUrl || "https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd",
+          paymasterUrl: BICONOMY_CONFIG.paymasterUrl,
+          chainId: SEPOLIA_CHAIN_ID,
+        };
+
+        let sa;
+        try {
+          sa = await createSmartAccountClient(createConfig);
+        } catch (err: any) {
+          // 如果出现 chainId mismatch，给出更友好的提示并尝试跳过检查（仅在开发/测试环境可接受）
+          const msg = String(err?.message || err);
+          if (msg.includes("Chain IDs from signer") || msg.includes("chain id")) {
+            console.warn("Bundler chainId mismatch detected. Retrying with skipChainCheck=true. Error:", msg);
+            // Retry with skipping chain check
+            sa = await createSmartAccountClient({ ...createConfig, skipChainCheck: true });
+          } else {
+            throw err;
+          }
         }
 
-        setSmartAccount(client);
-        setSmartAccountAddress(addr);
+        const saAddress = await sa.getAccountAddress();
+        // console.log("Smart account created:", {
+        //   address: saAddress,
+        //   methods: Object.keys(sa),
+        // });
+
+        if (mounted) {
+          setSmartAccount(sa);
+          setSmartAccountAddress(saAddress);
+        }
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        console.error("useSmartAccount init error:", errMsg, err);
-        setSmartAccount(null);
-        setSmartAccountAddress(null);
+        console.error("Smart Account init failed:", err);
+        if (mounted) {
+          setSmartAccount(null);
+          setSmartAccountAddress(null);
+        }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -62,12 +89,7 @@ export const useSmartAccount = () => {
     return () => {
       mounted = false;
     };
-  }, [eoaAddress, walletClient, getSmartAccountClient]);
+  }, [eoaAddress, walletClient]);
 
-  return {
-    eoaAddress,
-    smartAccount,
-    smartAccountAddress,
-    loading,
-  };
+  return { eoaAddress, smartAccount, smartAccountAddress, loading };
 };

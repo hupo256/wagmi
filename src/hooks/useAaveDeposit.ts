@@ -1,60 +1,98 @@
-// hooks/useAaveDeposit.ts
-import { useAccount } from "wagmi";
-import { useWriteContract } from "wagmi";
-import { parseEther } from "viem";
-
-// Aave V3 Pool (Sepolia)
-export const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-
-// USDC (Sepolia) — needed for asset parameter
-export const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-
-// Aave Pool ABI — 只需 deposit 函数
-const aavePoolAbi = [
-  {
-    inputs: [
-      { name: "asset", type: "address" },
-      { name: "amount", type: "uint256" },
-      { name: "onBehalfOf", type: "address" },
-      { name: "referralCode", type: "uint16" },
-    ],
-    name: "deposit",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+import { useState } from "react";
+import { encodeFunctionData, parseUnits } from "viem";
+import { erc20Abi } from "viem";
+import { AAVE_LENDING_POOL, USDC_ADDRESS, USDC_DECIMALS } from "@/config/aave";
+import { useSmartAccount } from "./useSmartAccount";
 
 export function useAaveDeposit() {
-  const { address } = useAccount();
-  const { writeContractAsync, isPending, data: txHash } = useWriteContract();
+  const { smartAccount } = useSmartAccount();
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
-  /**
-   * Deposit USDC into Aave
-   * @param amount - amount in human-readable number (e.g., 100 for 100 USDC)
-   */
-  const deposit = async (amount: number) => {
-    if (!address) throw new Error("Wallet not connected");
+  const depositUSDC = async (amount: number) => {
+    if (!smartAccount) return;
 
-    // USDC has 6 decimals
-    const amountInWei = BigInt(Math.floor(amount * 1e6));
+    setIsDepositing(true);
+    try {
+      // 获取智能账户地址
+      const smartAccountAddress = await smartAccount.getAccountAddress();
+      const amountInWei = parseUnits(amount.toString(), USDC_DECIMALS);
 
-    return await writeContractAsync({
-      address: AAVE_POOL_ADDRESS,
-      abi: aavePoolAbi,
-      functionName: "deposit",
-      args: [
-        USDC_ADDRESS, // asset
-        amountInWei, // amount
-        address, // onBehalfOf (usually yourself)
-        0, // referralCode (0 if none)
-      ],
-    });
+      // Step 1: Approve USDC to Aave LendingPool
+      const approveTx = {
+        to: USDC_ADDRESS,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [AAVE_LENDING_POOL, amountInWei],
+        }),
+      };
+
+      // Step 2: 准备 Deposit 参数
+      const depositTx = {
+        to: AAVE_LENDING_POOL,
+        data: encodeFunctionData({
+          abi: [
+            {
+              inputs: [
+                { name: "asset", type: "address" },
+                { name: "amount", type: "uint256" },
+                { name: "onBehalfOf", type: "address" },
+                { name: "referralCode", type: "uint16" },
+              ],
+              name: "deposit",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+          ],
+          functionName: "deposit",
+          args: [USDC_ADDRESS, amountInWei, smartAccountAddress, 0],
+        }),
+      };
+
+      // 发送 approve 交易
+      const approveOp = await smartAccount.sendTransaction(approveTx);
+      await approveOp.wait();
+
+      // 准备并发送 deposit 交易
+      const depositOp = await smartAccount.sendTransaction({
+        to: AAVE_LENDING_POOL,
+        data: encodeFunctionData({
+          abi: [
+            {
+              inputs: [
+                { name: "asset", type: "address" },
+                { name: "amount", type: "uint256" },
+                { name: "onBehalfOf", type: "address" },
+                { name: "referralCode", type: "uint16" },
+              ],
+              name: "deposit",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+          ],
+          functionName: "deposit",
+          args: [USDC_ADDRESS, amountInWei, await smartAccount.getAccountAddress(), 0],
+        }),
+      });
+      console.log("Deposit transactions:", { approveOp, depositOp });
+
+      // 等待 deposit 完成并记录交易哈希
+      const receipt = await depositOp.wait();
+      console.log("Deposit receipt:", receipt);
+
+      const txHash = depositOp.userOpHash;
+      setTxHash(txHash);
+      alert(`Deposit initiated! UserOp Hash: ${txHash}`);
+    } catch (err) {
+      console.error("Deposit failed:", err);
+      alert("Deposit failed");
+    } finally {
+      setIsDepositing(false);
+    }
   };
 
-  return {
-    deposit,
-    isDepositing: isPending,
-    depositTxHash: txHash,
-  };
+  return { depositUSDC, isDepositing, txHash };
 }

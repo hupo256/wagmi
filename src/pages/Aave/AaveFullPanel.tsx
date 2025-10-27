@@ -11,7 +11,7 @@ export default function AaveFullPanel() {
   const { aUSDCBalance, isLoading: loadingAUSDC } = useAUSDCBalance();
 
   const { approve, isApproving } = useApproveUSDC();
-  const { deposit, isDepositing } = useAaveDeposit();
+  const { depositUSDC: deposit, isDepositing } = useAaveDeposit();
   const { withdraw, isWithdrawing } = useAaveWithdraw();
 
   const [depositAmount, setDepositAmount] = useState<string>("10");

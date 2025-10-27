@@ -1,99 +1,73 @@
 import { useState } from "react";
-import { useSmartAccount } from "@/hooks/useSmartAccount";
 import { useAccount } from "wagmi";
+import { useSmartAccount } from "@/hooks/useSmartAccount";
+import { useAaveDeposit } from "@/hooks/useAaveDeposit";
 
 export default function App() {
-  const { address } = useAccount();
-  const { eoaAddress, smartAccountAddress, smartAccount, loading } = useSmartAccount();
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const sendTestTransaction = async () => {
-    if (!smartAccount || !smartAccountAddress) {
-      setError("Smart account or address not initialized");
-      return;
-    }
-
-    // 验证地址格式
-    if (!smartAccountAddress.startsWith("0x") || smartAccountAddress.length !== 42) {
-      setError(`Invalid smart account address format: ${smartAccountAddress}`);
-      return;
-    }
-
-    setSending(true);
-    setError(null);
-    try {
-      // 发送 0 ETH 到自己（测试交易）
-      const tx = await smartAccount.sendTransaction({
-        transaction: {
-          to: smartAccountAddress,
-          value: 0n,
-          data: "0x",
-        },
-      });
-
-      console.log("UserOp hash:", tx);
-      setTxHash(tx);
-      alert(`Transaction sent! UserOp hash: ${tx}`);
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      console.error("Transaction failed:", errMsg, error);
-      setError(errMsg);
-      alert(`Transaction failed: ${errMsg}`);
-    } finally {
-      setSending(false);
-    }
-  };
+  const { isConnected } = useAccount();
+  const { eoaAddress, smartAccount, smartAccountAddress, loading } = useSmartAccount();
+  const { depositUSDC, isDepositing, txHash } = useAaveDeposit();
+  const [amount, setAmount] = useState("100");
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>☕ Biconomy Smart Account Demo (Sepolia)</h1>
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">🏦 DeFi + AA: Aave Deposit Demo</h1>
 
-      {!address ? (
-        <p>🔌 Please connect your wallet</p>
+      {!isConnected ? (
+        <p className="text-gray-700">🔌 Connect wallet via RainbowKit</p>
+      ) : loading ? (
+        <p className="text-gray-700">⏳ Creating Smart Account...</p>
       ) : (
-        <div>
-          <p>
-            <strong>EOA Address:</strong> {eoaAddress}
+        <div className="space-y-4">
+          <p className="text-gray-800">
+            <strong>EOA:</strong> {eoaAddress}
           </p>
-          {loading ? (
-            <p>⏳ Initializing Smart Account...</p>
-          ) : smartAccountAddress ? (
-            <>
-              <p>
-                <strong>Smart Account:</strong> {smartAccountAddress}
-              </p>
-              {error && <p style={{ color: "red", marginTop: "0.5rem" }}>❌ Error: {error}</p>}
-              <button
-                onClick={sendTestTransaction}
-                disabled={sending}
-                style={{
-                  marginTop: "1rem",
-                  padding: "8px 16px",
-                  backgroundColor: sending ? "#ccc" : "#007bff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: sending ? "not-allowed" : "pointer",
-                }}
-              >
-                {sending ? "Sending..." : "Send Test Tx (0 ETH)"}
-              </button>
-              {txHash && <p style={{ marginTop: "1rem", color: "green" }}>✅ UserOp Hash: {txHash}</p>}
-            </>
-          ) : (
-            <p>❌ Failed to create Smart Account</p>
-          )}
+          <p className="text-gray-800">
+            <strong>Smart Account:</strong> {smartAccountAddress}
+          </p>
+
+          <div className="mt-6 flex items-center gap-2">
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="USDC amount"
+              className="p-2 border border-gray-300 rounded-md w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={() => depositUSDC(parseFloat(amount))}
+              disabled={isDepositing}
+              className={`px-4 py-2 rounded-md text-white ${
+                isDepositing ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+              }`}
+            >
+              {isDepositing ? "Depositing..." : "Deposit to Aave"}
+            </button>
+          </div>
+
+          {txHash && <p className="mt-4 text-green-600">✅ UserOp: {txHash.substring(0, 10)}...</p>}
+
+          <div className="mt-8 text-sm text-gray-600">
+            <p className="font-medium">💡 Prerequisites:</p>
+            <ul className="mt-2 space-y-2">
+              <li>
+                1. Get test USDC from{" "}
+                <a
+                  href="https://faucet.circle.com/"
+                  target="_blank"
+                  className="text-blue-500 hover:text-blue-600 underline"
+                >
+                  Circle Faucet
+                </a>
+              </li>
+              <li>
+                2. Ensure you're on <strong>Sepolia</strong>
+              </li>
+              <li>3. No ETH needed — gas paid by Paymaster!</li>
+            </ul>
+          </div>
         </div>
       )}
-
-      <div style={{ marginTop: "2rem", fontSize: "0.9em", color: "#666" }}>
-        <p>💡 This demo uses Biconomy AA with Paymaster (gasless).</p>
-        <p>
-          Make sure you're on <strong>Sepolia</strong> network.
-        </p>
-      </div>
     </div>
   );
 }
