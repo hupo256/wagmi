@@ -2,11 +2,12 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAcc
 import { erc20Abi, erc721Abi } from "viem";
 import { useState } from "react";
 import NetworkChecker from "./NetworkChecker";
+import { USDC_ADDRESS } from "@/config/aave";
 
 // Sepolia 测试网上的测试合约地址
 const TEST_CONTRACTS = {
   // USDC 测试代币 (Sepolia)
-  USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as `0x${string}`,
+  USDC: USDC_ADDRESS as `0x${string}`,
 
   // WETH 测试代币 (Sepolia)
   WETH: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14" as `0x${string}`,
@@ -65,7 +66,8 @@ const STORAGE_ABI = [
 ] as const;
 
 const codeTex = "text-gray-600 border border-gray-200 p-2 rounded mb-4 bg-gray-100";
-const btnTex = "inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50 mr-2 mb-2";
+const btnTex =
+  "inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50 mr-2 mb-2";
 const sectionStyle = "border border-gray-300 rounded-lg p-4 mb-6";
 
 export default function ContractTester() {
@@ -209,10 +211,18 @@ export default function ContractTester() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => handleTransfer(TEST_CONTRACTS.USDC, "USDC")} className={btnTex} disabled={isConfirming}>
+          <button
+            onClick={() => handleTransfer(TEST_CONTRACTS.USDC, "USDC")}
+            className={btnTex}
+            disabled={isConfirming}
+          >
             转账 USDC
           </button>
-          <button onClick={() => handleTransfer(TEST_CONTRACTS.WETH, "WETH")} className={btnTex} disabled={isConfirming}>
+          <button
+            onClick={() => handleTransfer(TEST_CONTRACTS.WETH, "WETH")}
+            className={btnTex}
+            disabled={isConfirming}
+          >
             转账 WETH
           </button>
         </div>
@@ -258,16 +268,20 @@ export default function ContractTester() {
         <h2 className="text-lg font-semibold mb-2">测试合约地址</h2>
         <div className="space-y-2 text-sm">
           <p>
-            <span className="font-medium">USDC:</span> <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.USDC}</code>
+            <span className="font-medium">USDC:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.USDC}</code>
           </p>
           <p>
-            <span className="font-medium">WETH:</span> <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.WETH}</code>
+            <span className="font-medium">WETH:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.WETH}</code>
           </p>
           <p>
-            <span className="font-medium">计数器:</span> <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.COUNTER}</code>
+            <span className="font-medium">计数器:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.COUNTER}</code>
           </p>
           <p>
-            <span className="font-medium">存储:</span> <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.STORAGE}</code>
+            <span className="font-medium">存储:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{TEST_CONTRACTS.STORAGE}</code>
           </p>
         </div>
       </div>
@@ -279,7 +293,12 @@ export default function ContractTester() {
         <ul className="text-sm text-gray-600 space-y-1">
           <li>
             •{" "}
-            <a href="https://sepoliafaucet.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            <a
+              href="https://sepoliafaucet.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
               Sepolia Faucet
             </a>{" "}
             - 获取 ETH

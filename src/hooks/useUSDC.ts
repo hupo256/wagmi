@@ -1,10 +1,6 @@
-// hooks/useUSDC.ts
-import { useAccount } from "wagmi";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { erc20Abi } from "viem";
-
-// Sepolia USDC 合约地址
-export const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
+import { USDC_ADDRESS } from "@/config/aave";
 
 // 读取 USDC 余额（单位：原始值，需除以 10^6）
 export function useUSDCBalance() {
@@ -35,7 +31,7 @@ export function useUSDCBalance() {
 export function useApproveUSDC() {
   const { writeContractAsync } = useWriteContract();
 
-  const approve = async (spender: `0x${string}`, amount: number) => {
+  async function approve(spender: `0x${string}`, amount: number) {
     const amountInWei = BigInt(Math.floor(amount * 1e6)); // USDC decimals = 6
     return await writeContractAsync({
       address: USDC_ADDRESS,
@@ -43,7 +39,7 @@ export function useApproveUSDC() {
       functionName: "approve",
       args: [spender, amountInWei],
     });
-  };
+  }
 
   return {
     approve,

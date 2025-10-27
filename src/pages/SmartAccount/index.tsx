@@ -2,16 +2,18 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useSmartAccount } from "@/hooks/useSmartAccount";
 import { useAaveDeposit } from "@/hooks/useAaveDeposit";
+import { useUSDCBalance } from "@/hooks/useUSDC";
 
 export default function App() {
   const { isConnected } = useAccount();
   const { eoaAddress, smartAccount, smartAccountAddress, loading } = useSmartAccount();
   const { depositUSDC, isDepositing, txHash } = useAaveDeposit();
-  const [amount, setAmount] = useState("100");
+  const { balance: usdcBalance } = useUSDCBalance();
+  const [amount, setAmount] = useState("10");
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">🏦 DeFi + AA: Aave Deposit Demo</h1>
+      <h1 className="text-2xl font-bold mb-6">🏦 DeFi + AA: Aave Deposit</h1>
 
       {!isConnected ? (
         <p className="text-gray-700">🔌 Connect wallet via RainbowKit</p>
@@ -24,6 +26,10 @@ export default function App() {
           </p>
           <p className="text-gray-800">
             <strong>Smart Account:</strong> {smartAccountAddress}
+          </p>
+
+          <p className="text-gray-800">
+            <strong>USDC Balance:</strong> {usdcBalance}
           </p>
 
           <div className="mt-6 flex items-center gap-2">

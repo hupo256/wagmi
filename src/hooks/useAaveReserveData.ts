@@ -1,9 +1,7 @@
-// hooks/useAaveReserveData.ts
 import { useReadContract } from "wagmi";
+import { AAVE_POOL_ADDRESS, USDC_ADDRESS } from "@/config/aave";
 
-export const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-export const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-
+// Aave Pool ABI — for getReserveData
 const aavePoolAbi = [
   {
     inputs: [{ name: "asset", type: "address" }],

@@ -1,10 +1,8 @@
-// components/AaveFullPanel.tsx
 import { useState } from "react";
 import { useUSDCBalance, useApproveUSDC } from "@/hooks/useUSDC";
 import { useAaveDeposit } from "@/hooks/useAaveDeposit";
 import { useAUSDCBalance, useAaveWithdraw } from "@/hooks/useAavePosition";
-
-const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
+import { AAVE_POOL_ADDRESS } from "@/config/aave";
 
 export default function AaveFullPanel() {
   const { balance: usdcBalance } = useUSDCBalance();
@@ -63,7 +61,7 @@ export default function AaveFullPanel() {
           disabled={isApproving || isDepositing}
           className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {isApproving ? "Approving..." : isDepositing ? "Depositing..." : "Deposit"}
+          {isApproving ? "Approving..." : isDepositing ? "Depositing..." : "Deposit 22"}
         </button>
       </div>
 

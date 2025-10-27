@@ -43,6 +43,7 @@ export const useSmartAccount = () => {
           signer: walletClient,
           bundlerUrl: BICONOMY_CONFIG.bundlerUrl || "https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd",
           paymasterUrl: BICONOMY_CONFIG.paymasterUrl,
+          apiKey: BICONOMY_CONFIG.apiKey,
           chainId: SEPOLIA_CHAIN_ID,
         };
 
@@ -62,11 +63,6 @@ export const useSmartAccount = () => {
         }
 
         const saAddress = await sa.getAccountAddress();
-        // console.log("Smart account created:", {
-        //   address: saAddress,
-        //   methods: Object.keys(sa),
-        // });
-
         if (mounted) {
           setSmartAccount(sa);
           setSmartAccountAddress(saAddress);

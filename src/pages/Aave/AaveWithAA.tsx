@@ -1,6 +1,6 @@
-// pages/aave.tsx 或 components/AaveWithAA.tsx
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { AAVE_POOL_ADDRESS, USDC_ADDRESS } from "@/config/aave";
 
 // 传统 Wagmi Hooks
 import { useUSDCBalance } from "@/hooks/useUSDC";
@@ -12,13 +12,8 @@ import { useSmartAccountClient } from "@/hooks/useSmartAccountClient";
 // import { useWalletClient } from "wagmi";
 import { encodeFunctionData, parseAbi } from "viem";
 
-// Addresses
-const AAVE_POOL_ADDRESS = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
-const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-
 export default function AaveWithAA() {
   const { address } = useAccount();
-  // const { walletClient } = useWalletClient();
   const { getSmartAccountClient } = useSmartAccountClient();
 
   // Data
