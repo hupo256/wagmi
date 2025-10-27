@@ -1,4 +1,3 @@
-// hooks/useSmartAccountClient.ts
 import { useWalletClient } from "wagmi";
 // import { smartData } from "@/common/smartData";
 import type { BiconomySmartAccountV2 } from "@biconomy/account";

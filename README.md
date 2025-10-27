@@ -130,10 +130,6 @@ npx hardhat node
 │  │  ├─ List.tsx             # 简单存储合约读写与事件监听
 │  │  ├─ Home.tsx             # 首页
 │  │  └─ Details.tsx          # 详情页
-│  └─ components/
-│     ├─ ConnectMan.tsx       # 钱包连接
-│     ├─ NetworkChecker.tsx   # 网络检查
-│     └─ TokenBalance.tsx     # ERC20 余额查询
 ```
 
 ## 网络检查（必读）

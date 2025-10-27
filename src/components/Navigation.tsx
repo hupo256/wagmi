@@ -5,6 +5,7 @@ export default function Navigation() {
 
   const navItems = [
     { path: "/home", label: "首页" },
+    { path: "/smartAccount", label: "Smart" },
     { path: "/aave", label: "Aave" },
     { path: "/list", label: "列表" },
     { path: "/details", label: "详情" },
