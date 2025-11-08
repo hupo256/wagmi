@@ -16,7 +16,7 @@ export default function Navigation() {
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex space-x-8">
+        <div className="flex space-x-8 max-w-4xl mx-auto px-8">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
             return (
