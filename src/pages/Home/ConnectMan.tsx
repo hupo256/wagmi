@@ -1,16 +1,31 @@
 import { useAccount, useBalance, useConnect, useDisconnect, useChainId } from "wagmi";
 import { formatUnits } from "viem";
+import { useContractor } from "@store/index";
+import { useEffect } from "react";
 
 export default function ConnectMan() {
   const { address, isConnected } = useAccount();
+  const { isRefresh, setIsRefresh, balance, setBalance } = useContractor();
   const chainId = useChainId();
-  const { connectors, connect, isPending: isConnectPending, status: connectStatus, error: connectError } = useConnect();
+  const { connectors, connect, isPending, status, error } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: balance } = useBalance({
+  const { data: balanceObj, refetch } = useBalance({
     address,
     chainId,
     query: { enabled: !!address },
   });
+
+  // 更新余额
+  useEffect(() => {
+    if (!balanceObj) return;
+    setBalance(balanceObj);
+  }, [balanceObj]);
+
+  // 更新余额
+  useEffect(() => {
+    if (!isRefresh) return;
+    refetch().then(() => setIsRefresh(false));
+  }, [isRefresh]);
 
   return (
     <section className="mb-6">
@@ -34,8 +49,8 @@ export default function ConnectMan() {
           <div className="flex flex-wrap gap-2">
             {connectors.map((c) => (
               <button
-                key={(c as any).uid ?? c.id}
-                disabled={isConnectPending}
+                key={c.uid}
+                disabled={isPending}
                 onClick={() => connect({ connector: c as any })}
                 className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
               >
@@ -43,8 +58,8 @@ export default function ConnectMan() {
               </button>
             ))}
           </div>
-          <div className="text-sm text-red-500 mt-2">{connectError?.message}</div>
-          <div className="text-sm mt-1">状态: {connectStatus}</div>
+          <div className="text-sm text-red-500 mt-2">{error?.message}</div>
+          <div className="text-sm mt-1">状态: {status}</div>
         </div>
       )}
     </section>

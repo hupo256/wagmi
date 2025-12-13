@@ -1,6 +1,6 @@
-import ConnectMan from "../components/ConnectMan";
-import Signature from "../components/SignatureMan";
-import Transaction from "../components/Transaction";
+import ConnectMan from "./ConnectMan";
+import Signature from "./SignatureMan";
+import Transaction from "./Transaction";
 
 export default function Home() {
   return (
@@ -9,7 +9,9 @@ export default function Home() {
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
         <h2 className="text-xl font-semibold text-blue-800 mb-3">🚀 新功能：合约测试</h2>
-        <p className="text-blue-700 mb-4">现在您可以在 Sepolia 测试网上与智能合约进行交互！我们提供了多种合约类型供您测试：</p>
+        <p className="text-blue-700 mb-4">
+          现在您可以在 Sepolia 测试网上与智能合约进行交互！我们提供了多种合约类型供您测试：
+        </p>
         <ul className="text-blue-700 space-y-2">
           <li>
             • <strong>ERC20 代币合约</strong> - 查询余额、转账代币
@@ -25,7 +27,10 @@ export default function Home() {
           <a href="/contracts" className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-3">
             开始测试合约
           </a>
-          <a href="/simple-contract" className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          <a
+            href="/simple-contract"
+            className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
             简单合约测试
           </a>
         </div>
@@ -57,7 +62,8 @@ export default function Home() {
           <li>• 本项目使用 Sepolia 测试网，请确保您的钱包连接到正确的网络</li>
           <li>• 测试代币可以通过水龙头免费获取</li>
           <li>
-            • 查看 <code className="bg-yellow-100 px-2 py-1 rounded">CONTRACT_DEPLOYMENT_GUIDE.md</code> 了解如何部署自己的合约
+            • 查看 <code className="bg-yellow-100 px-2 py-1 rounded">CONTRACT_DEPLOYMENT_GUIDE.md</code>{" "}
+            了解如何部署自己的合约
           </li>
         </ul>
         <div className="mt-4 flex flex-wrap gap-2">

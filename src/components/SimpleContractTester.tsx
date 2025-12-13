@@ -1,51 +1,25 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
-import { useState } from "react";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  useWatchContractEvent,
+} from "wagmi";
+import { useMemo, useState } from "react";
 import NetworkChecker from "./NetworkChecker";
+import { sepABI } from "@abis/simpleStorageAbi";
 
-// 这是一个在 Sepolia 上已经部署的简单合约地址
-// 您也可以使用 Remix 或其他工具部署自己的合约
-// const SIMPLE_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as `0x${string}`;
-const SIMPLE_CONTRACT_ADDRESS = "0x6cee97953141d8437981f405a99c4fef39cb4b60" as `0x${string}`;
+// 示例：Sepolia 上的一个已知示例合约（仅作测试使用）
+// 说明：如果该地址在当前 Sepolia 网络上不可用，请按注释中的方法替换为你自己的已部署合约地址。
+const sepAddr = "0x4951256aE46e96B2899ecEBbC5B0744e1d9D9b57" as `0x${string}`;
 
-// 简单合约的 ABI - 包含基本的读写功能
-const SIMPLE_CONTRACT_ABI = [
-  {
-    inputs: [],
-    name: "getValue",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_value", type: "uint256" }],
-    name: "setValue",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "increment",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "decrement",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
-const codeTex = "text-gray-600 border border-gray-200 p-2 rounded mb-4 bg-gray-100";
-const btnTex = "inline-flex items-center rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 mr-2 mb-2";
+const btnTex =
+  "inline-flex items-center rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 mr-2 mb-2";
 const sectionStyle = "border border-gray-300 rounded-lg p-4 mb-6";
 
 export default function SimpleContractTester() {
-  const { address, isConnected } = useAccount();
-  const { writeContract, data: hash } = useWriteContract();
+  const { address: curAddr, isConnected } = useAccount();
+  const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
   const [inputValue, setInputValue] = useState("0");
 
@@ -55,38 +29,37 @@ export default function SimpleContractTester() {
     isLoading: valueLoading,
     refetch,
   } = useReadContract({
-    address: SIMPLE_CONTRACT_ADDRESS,
-    abi: SIMPLE_CONTRACT_ABI,
+    address: sepAddr,
+    abi: sepABI,
     functionName: "getValue",
   });
 
-  // 设置值
-  const handleSetValue = () => {
+  function todoContract(funKey: string, args?: boolean) {
     writeContract({
-      address: SIMPLE_CONTRACT_ADDRESS,
-      abi: SIMPLE_CONTRACT_ABI,
-      functionName: "setValue",
-      args: [BigInt(inputValue)],
+      address: sepAddr,
+      abi: sepABI,
+      functionName: funKey,
+      ...(args ? { args: [BigInt(inputValue)] } : null),
     });
-  };
+  }
 
-  // 增加
-  const handleIncrement = () => {
-    writeContract({
-      address: SIMPLE_CONTRACT_ADDRESS,
-      abi: SIMPLE_CONTRACT_ABI,
-      functionName: "increment",
-    });
-  };
+  // 3️⃣ 监听事件
+  useWatchContractEvent({
+    address: sepAddr,
+    abi: sepABI,
+    eventName: "ValueChanged",
+    onLogs(logs) {
+      console.log("✅ Event:", logs);
+      refetch();
+      setInputValue("0");
+    },
+  });
 
-  // 减少
-  const handleDecrement = () => {
-    writeContract({
-      address: SIMPLE_CONTRACT_ADDRESS,
-      abi: SIMPLE_CONTRACT_ABI,
-      functionName: "decrement",
-    });
-  };
+  // 生成一个加载中组件, 带动画效果
+  const LoadingMan = useMemo(
+    () => <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500" />,
+    [],
+  );
 
   if (!isConnected) {
     return (
@@ -106,21 +79,31 @@ export default function SimpleContractTester() {
 
       {/* 交易状态 */}
       <div className={sectionStyle}>
-        <h2 className="text-lg font-semibold mb-2">交易状态</h2>
-        <p className={codeTex}>
-          {isConfirming && "等待交易确认..."}
-          {isConfirmed && "交易成功！"}
-          {!isConfirming && !isConfirmed && "准备发送交易"}
-        </p>
+        <div className="flex gap-2 items-center">
+          <h2 className="text-lg font-semibold">交易状态: </h2>
+          <code className="text-gray-500">
+            {isConfirming && "等待交易确认..."}
+            {isConfirmed && "交易成功！"}
+            {!isConfirming && !isConfirmed && "准备发送交易"}
+          </code>
+        </div>
         {hash && <p className="text-sm text-blue-600">交易哈希: {hash}</p>}
       </div>
 
       {/* 合约状态 */}
       <div className={sectionStyle}>
         <h2 className="text-lg font-semibold mb-2">合约状态</h2>
-        <p className="text-sm text-gray-600 mb-2">当前值:</p>
-        <p className={codeTex}>{valueLoading ? "加载中..." : contractValue?.toString() || "0"}</p>
-        <button onClick={() => refetch()} className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1 text-sm text-white hover:bg-gray-700">
+        <div className="flex gap-2 items-center pb-4">
+          <p className="text-sm text-gray-600">当前值:</p>
+          <code className="text-gray-500">
+            {valueLoading || isConfirming ? LoadingMan : contractValue?.toString() || "0"}
+          </code>
+        </div>
+
+        <button
+          onClick={() => refetch()}
+          className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1 text-sm text-white hover:bg-gray-700"
+        >
           刷新状态
         </button>
       </div>
@@ -139,17 +122,21 @@ export default function SimpleContractTester() {
             className="border border-gray-300 rounded px-3 py-2 w-full max-w-xs mr-2"
             placeholder="输入数字"
           />
-          <button onClick={handleSetValue} className={btnTex} disabled={isConfirming}>
+          <button
+            onClick={() => todoContract("setValue", true)}
+            className={btnTex}
+            disabled={isPending || isConfirming}
+          >
             设置值
           </button>
         </div>
 
         {/* 增加/减少 */}
         <div className="flex gap-2">
-          <button onClick={handleIncrement} className={btnTex} disabled={isConfirming}>
+          <button onClick={() => todoContract("increment")} className={btnTex} disabled={isPending || isConfirming}>
             增加 (+1)
           </button>
-          <button onClick={handleDecrement} className={btnTex} disabled={isConfirming}>
+          <button onClick={() => todoContract("decrement")} className={btnTex} disabled={isPending || isConfirming}>
             减少 (-1)
           </button>
         </div>
@@ -160,13 +147,15 @@ export default function SimpleContractTester() {
         <h2 className="text-lg font-semibold mb-2">合约信息</h2>
         <div className="space-y-2 text-sm">
           <p>
-            <span className="font-medium">合约地址:</span> <code className="bg-gray-100 px-2 py-1 rounded">{SIMPLE_CONTRACT_ADDRESS}</code>
+            <span className="font-medium">合约地址:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{sepAddr}</code>
           </p>
           <p>
             <span className="font-medium">网络:</span> Sepolia 测试网
           </p>
           <p>
-            <span className="font-medium">您的地址:</span> <code className="bg-gray-100 px-2 py-1 rounded">{address}</code>
+            <span className="font-medium">您的地址:</span>{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded">{curAddr}</code>
           </p>
         </div>
       </div>
@@ -176,29 +165,31 @@ export default function SimpleContractTester() {
         <h2 className="text-lg font-semibold mb-2">合约源码 (Solidity)</h2>
         <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto">
           {`// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+            pragma solidity ^0.8.0;
 
-contract SimpleContract {
-    uint256 private value;
-    
-    function getValue() public view returns (uint256) {
-        return value;
-    }
-    
-    function setValue(uint256 _value) public {
-        value = _value;
-    }
-    
-    function increment() public {
-        value += 1;
-    }
-    
-    function decrement() public {
-        value -= 1;
-    }
-}`}
+            contract SimpleContract {
+                uint256 private value;
+                
+                function getValue() public view returns (uint256) {
+                    return value;
+                }
+                
+                function setValue(uint256 _value) public {
+                    value = _value;
+                }
+                
+                function increment() public {
+                    value += 1;
+                }
+                
+                function decrement() public {
+                    value -= 1;
+                }
+            }`}
         </pre>
-        <p className="text-sm text-gray-600 mt-2">您可以使用 Remix IDE 部署这个合约到 Sepolia 测试网，然后更新上面的合约地址。</p>
+        <p className="text-sm text-gray-600 mt-2">
+          您可以使用 Remix IDE 部署这个合约到 Sepolia 测试网，然后更新上面的合约地址。
+        </p>
       </div>
     </div>
   );
