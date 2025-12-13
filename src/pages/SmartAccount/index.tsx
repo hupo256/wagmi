@@ -6,7 +6,7 @@ import { useUSDCBalance } from "@/hooks/useUSDC";
 
 export default function App() {
   const { isConnected } = useAccount();
-  const { eoaAddress, smartAccount, smartAccountAddress, loading } = useSmartAccount();
+  const { eoaAddress, smartAccountAddress, loading } = useSmartAccount();
   const { depositUSDC, isDepositing, txHash, depositStatus } = useAaveDeposit();
   const { balance: eoaUsdcBalance } = useUSDCBalance();
   const { balance: smartUsdcBalance } = useUSDCBalance(smartAccountAddress || undefined);
@@ -95,7 +95,7 @@ export default function App() {
                 </a>
               </li>
               <li>
-                2. Ensure you're on <strong>Sepolia</strong>
+                2. Ensure you're on <strong>Sepolia</strong>{" "}
               </li>
               <li>3. No ETH needed — gas paid by Paymaster!</li>
             </ul>

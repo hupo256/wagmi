@@ -18,15 +18,14 @@ export const useSmartAccount = () => {
 
   async function init() {
     try {
-      if (!walletClient) return;
       const { createSmartAccountClient } = await import("@biconomy/account");
       const config = {
-        signer: walletClient,
+        signer: walletClient!,
         bundlerUrl: BICONOMY_CONFIG.bundlerUrl,
         paymasterUrl: BICONOMY_CONFIG.paymasterUrl,
-        apiKey: BICONOMY_CONFIG.apiKey,
-        paymasterApiKey: BICONOMY_CONFIG.paymasterApiKey,
-        chainId: SEPOLIA_CHAIN_ID,
+        // apiKey: BICONOMY_CONFIG.apiKey,
+        // paymasterApiKey: BICONOMY_CONFIG.paymasterApiKey,
+        // chainId: SEPOLIA_CHAIN_ID,
       };
 
       const sa = await createSmartAccountClient(config);
