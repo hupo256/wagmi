@@ -100,27 +100,36 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
         }),
       };
 
+      // Build UserOp options - only include paymaster if enabled
+      // Don't set gas parameters manually when using paymaster, let it calculate automatically
+      const buildUserOpOptions = usePaymaster
+        ? {
+            paymasterServiceData: {
+              mode: "SPONSORED" as const,
+            },
+          }
+        : undefined;
+
       // Build and send approve
       setDepositStatus("Building approve transaction...");
-      const approveUserOp = await smartAccount.buildUserOp(
-        [approveTx],
-        usePaymaster ? ({ paymasterServiceData: { mode: "SPONSORED" } } as any) : undefined,
-      );
+      const approveUserOp = await smartAccount.buildUserOp([approveTx], buildUserOpOptions as any);
+
       setDepositStatus("Sending approve transaction...");
       const approveResponse = await smartAccount.sendUserOp(approveUserOp);
+
       setDepositStatus("Waiting for approve confirmation...");
       await approveResponse.wait();
 
       // Build and send deposit
       setDepositStatus("Building deposit transaction...");
-      const depositUserOp = await smartAccount.buildUserOp(
-        [depositTx],
-        usePaymaster ? ({ paymasterServiceData: { mode: "SPONSORED" } } as any) : undefined,
-      );
+      const depositUserOp = await smartAccount.buildUserOp([depositTx], buildUserOpOptions as any);
+
       setDepositStatus("Sending deposit transaction...");
       const depositResponse = await smartAccount.sendUserOp(depositUserOp);
+
       setDepositStatus("Waiting for deposit confirmation...");
       const depositReceipt = await depositResponse.wait();
+
       const finalTxHash =
         (depositReceipt as any)?.transactionHash ??
         (depositReceipt as any)?.userOpHash ??

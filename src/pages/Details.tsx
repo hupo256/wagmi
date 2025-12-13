@@ -3,12 +3,13 @@ import { useWalletClient, useAccount, useBalance } from "wagmi";
 import { useState } from "react";
 import { parseUnits } from "viem";
 import { encodeFunctionData } from "viem";
-import { createBiconomyAccount } from "../lib/biconomy-client";
+import { useSmartAccount } from "@/hooks/useSmartAccount";
 import { AAVE_POOL_ADDRESS, AAVE_POOL_ABI, USDC_ADDRESS } from "../config/aave";
 
 export default function Home() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const { smartAccount } = useSmartAccount();
   const { data: usdcBalance } = useBalance({
     address,
     token: USDC_ADDRESS,
@@ -29,9 +30,6 @@ export default function Home() {
       if (typeof window !== "undefined" && typeof (window as any).process === "undefined") {
         (window as any).process = { env: {} };
       }
-
-      // 1. 创建 Biconomy 智能账户
-      const smartAccount = await createBiconomyAccount(walletClient);
 
       setStatus("Building transaction...");
 
@@ -56,11 +54,11 @@ export default function Home() {
       };
 
       // 先预估用户操作
-      const userOp = await smartAccount.buildUserOp([tx]);
+      const userOp = await smartAccount?.buildUserOp([tx]);
       console.log("Built UserOp:", userOp);
 
       // 发送用户操作
-      const userOpResponse = await smartAccount.sendUserOp(userOp);
+      const userOpResponse = await smartAccount?.sendUserOp(userOp as any);
       console.log("UserOp Response:", userOpResponse);
 
       if (!userOpResponse) {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
+import { formatEther } from "viem";
 import { useSmartAccount } from "@/hooks/useSmartAccount";
 import { useAaveDeposit } from "@/hooks/useAaveDeposit";
 import { useUSDCBalance } from "@/hooks/useUSDC";
@@ -10,7 +11,11 @@ export default function App() {
   const { depositUSDC, isDepositing, txHash, depositStatus } = useAaveDeposit();
   const { balance: eoaUsdcBalance } = useUSDCBalance();
   const { balance: smartUsdcBalance } = useUSDCBalance(smartAccountAddress || undefined);
-  const [amount, setAmount] = useState("1");
+  const { data: smartEthBalance } = useBalance({
+    address: smartAccountAddress as `0x${string}` | undefined,
+    query: { enabled: !!smartAccountAddress },
+  });
+  const [amount, setAmount] = useState("1.2");
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
@@ -39,6 +44,10 @@ export default function App() {
           </p>
           <p className="text-gray-800">
             <strong>Smart Account USDC Balance:</strong> {smartUsdcBalance}
+          </p>
+          <p className="text-gray-800">
+            <strong>Smart Account ETH Balance:</strong>{" "}
+            {smartEthBalance ? `${formatEther(smartEthBalance.value)} ETH` : "Loading..."}
           </p>
 
           <div className="flex items-center gap-2 pt-4">
@@ -80,28 +89,28 @@ export default function App() {
               </ul>
             </div>
           )}
-
-          <div className="p-4 text-sm text-gray-400 border rounded mt-4">
-            <p className="font-medium">💡 Prerequisites:</p>
-            <ul className="mt-2 space-y-2">
-              <li>
-                1. Get test USDC from{" "}
-                <a
-                  href="https://faucet.circle.com/"
-                  target="_blank"
-                  className="text-blue-500/70 hover:text-blue-600 underline"
-                >
-                  Circle Faucet
-                </a>
-              </li>
-              <li>
-                2. Ensure you're on <strong>Sepolia</strong>{" "}
-              </li>
-              <li>3. No ETH needed — gas paid by Paymaster!</li>
-            </ul>
-          </div>
         </div>
       )}
+
+      <div className="p-4 text-sm text-gray-400 border rounded mt-6">
+        <p className="font-medium">💡 Prerequisites:</p>
+        <ul className="mt-2 space-y-2">
+          <li>
+            1. Get test USDC from{" "}
+            <a
+              href="https://faucet.circle.com/"
+              target="_blank"
+              className="text-blue-500/70 hover:text-blue-600 underline"
+            >
+              Circle Faucet
+            </a>
+          </li>
+          <li>
+            2. Ensure you're on <strong>Sepolia</strong>{" "}
+          </li>
+          <li>3. No ETH needed — gas paid by Paymaster!</li>
+        </ul>
+      </div>
     </div>
   );
 }
