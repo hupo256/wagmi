@@ -3,8 +3,10 @@ import { erc20Abi } from "viem";
 import { USDC_ADDRESS } from "@/config/aave";
 
 // 读取 USDC 余额（单位：原始值，需除以 10^6）
-export function useUSDCBalance() {
+export function useUSDCBalance(accountAddress?: string) {
   const { address } = useAccount();
+
+  const targetAddress = accountAddress || address;
 
   const {
     data: balance,
@@ -14,10 +16,8 @@ export function useUSDCBalance() {
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address,
-    },
+    args: targetAddress ? [targetAddress as `0x${string}`] : undefined,
+    query: { enabled: !!targetAddress },
   });
 
   return {
