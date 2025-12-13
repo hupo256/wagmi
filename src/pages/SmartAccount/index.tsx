@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useSmartAccount } from "@/hooks/useSmartAccount";
 import { useAaveDeposit } from "@/hooks/useAaveDeposit";
@@ -11,16 +11,21 @@ export default function App() {
   const { balance: eoaUsdcBalance } = useUSDCBalance();
   const { balance: smartUsdcBalance } = useUSDCBalance(smartAccountAddress || undefined);
   const [amount, setAmount] = useState("1");
+  const [logs, setLogs] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!depositStatus) return;
+    setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${depositStatus}`]);
+  }, [depositStatus]);
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">🏦 DeFi + AA: Aave Deposit</h1>
 
-      {!isConnected ? (
-        <p className="text-gray-700">🔌 Connect wallet via RainbowKit</p>
-      ) : loading ? (
-        <p className="text-gray-700">⏳ Creating Smart Account...</p>
-      ) : (
+      {!isConnected && <p className="text-gray-700">🔌 Connect wallet via RainbowKit</p>}
+      {loading && <p className="text-gray-700">⏳ Creating Smart Account...</p>}
+
+      {isConnected && (
         <div className="space-y-1">
           <p className="text-gray-800">
             <strong>EOA:</strong> {eoaAddress}
@@ -65,7 +70,18 @@ export default function App() {
             </div>
           )}
 
-          <div className="mt-8 text-sm text-gray-600 hidden">
+          {logs.length > 0 && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-md max-h-40 overflow-y-auto">
+              <p className="text-sm font-medium text-blue-800 mb-2">Operation Logs:</p>
+              <ul className="text-xs text-blue-700 space-y-1">
+                {logs.map((log, index) => (
+                  <li key={index}>{log}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="p-4 text-sm text-gray-400 border rounded mt-4">
             <p className="font-medium">💡 Prerequisites:</p>
             <ul className="mt-2 space-y-2">
               <li>
@@ -73,7 +89,7 @@ export default function App() {
                 <a
                   href="https://faucet.circle.com/"
                   target="_blank"
-                  className="text-blue-500 hover:text-blue-600 underline"
+                  className="text-blue-500/70 hover:text-blue-600 underline"
                 >
                   Circle Faucet
                 </a>
