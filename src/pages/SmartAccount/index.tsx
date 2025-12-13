@@ -80,7 +80,7 @@ export default function App() {
           )}
 
           {logs.length > 0 && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-md max-h-40 overflow-y-auto">
+            <div className="mt-4 p-4 bg-blue-50 rounded-md max-h-80 overflow-y-auto">
               <p className="text-sm font-medium text-blue-800 mb-2">Operation Logs:</p>
               <ul className="text-xs text-blue-700 space-y-1">
                 {logs.map((log, index) => (

@@ -4,10 +4,10 @@ import { type BiconomySmartAccountV2 } from "@biconomy/account";
 import { BICONOMY_CONFIG } from "@/config/biconomy";
 
 // Fallbacks (in case env vars are not set)
-const DEFAULT_BUNDLER_URL = "https://bundler.biconomy.io/api/v2/11155111/bundler_EySs6k278gKSMuFVymA22J";
-// NOTE: For @biconomy/account@4.x, paymaster v1 endpoints are the common stable default.
-const DEFAULT_PAYMASTER_URL =
-  "https://paymaster.biconomy.io/api/v1/11155111/lKqP4LfWm.929bf343-197e-4ea0-a4e7-4940d1bd7d49";
+// Keep these aligned with the working defaults used elsewhere in this repo (`useSmartAccountClient.ts`)
+const DEFAULT_BUNDLER_URL = "https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd";
+// Paymaster is optional. Do NOT default to a random/shared paymaster URL, otherwise the app will spam 417s.
+const DEFAULT_PAYMASTER_URL: string | undefined = undefined;
 
 function normalizePaymasterUrl(url?: string) {
   if (!url) return url;

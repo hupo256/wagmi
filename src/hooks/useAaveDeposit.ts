@@ -11,7 +11,116 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
   const [isDepositing, setIsDepositing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [depositStatus, setDepositStatus] = useState<string | null>(null);
-  const usePaymaster = opts?.forcePaymaster ?? !!BICONOMY_CONFIG?.paymasterUrl;
+  const paymasterEnabled = opts?.forcePaymaster ?? !!BICONOMY_CONFIG?.paymasterUrl;
+  // If the caller explicitly forces paymaster, we won't silently fall back.
+  const allowPaymasterFallback = opts?.forcePaymaster === true ? false : true;
+
+  const isPaymasterV7Error = (err: unknown) => {
+    const msg = (err as any)?.message ? String((err as any).message) : String(err);
+    return (
+      msg.includes("Expected a V7 response") ||
+      msg.includes("Invalid response from the gas estimator") ||
+      msg.includes("Expectation Failed") ||
+      msg.includes(" 417 ") ||
+      msg.includes("417")
+    );
+  };
+
+  // Keep aligned with `useSmartAccountClient.ts` / `useSmartAccount.ts` defaults.
+  const BUNDLER_URL_FALLBACK = "https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd";
+  const bundlerUrl = BICONOMY_CONFIG?.bundlerUrl || BUNDLER_URL_FALLBACK;
+
+  const bundlerRpc = async (method: string, params: any[]) => {
+    const res = await fetch(bundlerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    });
+    const j = await res.json();
+    if (j?.error) {
+      const msg = j?.error?.message ? String(j.error.message) : JSON.stringify(j.error);
+      throw new Error(`Bundler RPC error (${method}): ${msg}`);
+    }
+    return j?.result;
+  };
+
+  const resolveEntryPoint = async () => {
+    // Try SDK-provided helpers first (shape varies by version), then fall back to the common v0.6 EntryPoint.
+    const sa: any = smartAccount as any;
+    if (typeof sa?.getEntryPointAddress === "function") {
+      try {
+        const ep = await sa.getEntryPointAddress();
+        if (ep) return String(ep);
+      } catch {
+        // ignore
+      }
+    }
+    const ep =
+      sa?.entryPointAddress ??
+      sa?.entryPoint ??
+      // ERC-4337 v0.6 EntryPoint (widely used)
+      "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
+    return String(ep);
+  };
+
+  const sendUserOpViaBundler = async (userOp: any) => {
+    const entryPoint = await resolveEntryPoint();
+    // bundler returns userOpHash if accepted; otherwise it returns a JSON-RPC error (we surface it).
+    const userOpHash = await bundlerRpc("eth_sendUserOperation", [userOp, entryPoint]);
+    return String(userOpHash);
+  };
+
+  const getSelfPaidFeeOverrides = async () => {
+    // When not using a paymaster, we can bump fees to reduce the chance of the UserOp getting stuck.
+    // Using eth_gasPrice as a simple signal (works on Sepolia too).
+    const res = await fetch("https://ethereum-sepolia-rpc.publicnode.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_gasPrice", params: [] }),
+    });
+    const j = await res.json();
+    const gp = j?.result ? BigInt(j.result) : BigInt(0);
+    // bump 2x as maxFee; 1 gwei tip
+    const maxFeePerGas = gp > 0n ? gp * 2n : 50_000_000_000n; // fallback 50 gwei
+    const maxPriorityFeePerGas = 1_500_000_000n; // 1.5 gwei
+    // SDK accepts strings in many versions; keep as decimal strings to avoid hex confusion.
+    return {
+      maxFeePerGas: maxFeePerGas.toString(),
+      maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+    };
+  };
+
+  const waitForUserOpReceiptViaBundler = async (
+    userOpHash: string,
+    opts?: { timeoutMs?: number; intervalMs?: number },
+  ) => {
+    const timeoutMs = opts?.timeoutMs ?? 480_000; // 8 minutes (Sepolia/bundler can be slow)
+    const intervalMs = opts?.intervalMs ?? 2_000; // 2 seconds
+    const startedAt = Date.now();
+    let lastKnown: boolean | null = null;
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const receipt = (await bundlerRpc("eth_getUserOperationReceipt", [userOpHash])) ?? null;
+      if (receipt) return receipt;
+
+      // Optional extra signal: is the bundler aware of this UserOp at all?
+      const byHash = await bundlerRpc("eth_getUserOperationByHash", [userOpHash]);
+      const known = !!byHash;
+      lastKnown = known;
+      setDepositStatus(
+        known
+          ? `UserOp pending on bundler... (${userOpHash.slice(0, 10)}...)`
+          : `Bundler has not indexed this UserOp yet... (${userOpHash.slice(0, 10)}...)`,
+      );
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+
+    throw new Error(
+      `Timed out waiting for bundler receipt for userOpHash ${userOpHash} (bundler: ${bundlerUrl}, bundlerKnown=${String(
+        lastKnown,
+      )}).`,
+    );
+  };
 
   const depositUSDC = async (amount: number) => {
     if (!smartAccount) return setDepositStatus("Smart account not initialized");
@@ -21,6 +130,28 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
 
     try {
       const smartAccountAddress = await smartAccount.getAccountAddress();
+
+      const assertSmartAccountHasNativeGas = async () => {
+        setDepositStatus("Checking smart account ETH balance (gas)...");
+        const balRes = await fetch("https://ethereum-sepolia-rpc.publicnode.com", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "eth_getBalance",
+            params: [smartAccountAddress, "latest"],
+          }),
+        });
+        const balJson = await balRes.json();
+        const balanceHex = balJson?.result;
+        const nativeBalance = balanceHex ? BigInt(balanceHex) : BigInt(0);
+        if (nativeBalance === BigInt(0)) {
+          throw new Error(
+            "Paymaster is unavailable and smart account has 0 Sepolia ETH for gas. Please fund the smart account with a small amount of Sepolia ETH, or fix the Paymaster configuration.",
+          );
+        }
+      };
 
       // Check USDC balance
       setDepositStatus("Checking USDC balance...");
@@ -48,26 +179,8 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
         throw new Error(`Insufficient USDC. Balance: ${Number(usdcBalance) / 1e6}, Required: ${amount}`);
       }
 
-      // Check native balance if not using paymaster
-      if (!usePaymaster) {
-        setDepositStatus("Checking native balance...");
-        const balRes = await fetch("https://ethereum-sepolia-rpc.publicnode.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "eth_getBalance",
-            params: [smartAccountAddress, "latest"],
-          }),
-        });
-        const balJson = await balRes.json();
-        const balanceHex = balJson?.result;
-        const nativeBalance = balanceHex ? BigInt(balanceHex) : BigInt(0);
-        if (nativeBalance === BigInt(0)) {
-          throw new Error("Smart account has zero native balance. Fund with Sepolia ETH or use paymaster.");
-        }
-      }
+      // If paymaster is disabled, ensure the smart account can pay gas.
+      if (!paymasterEnabled) await assertSmartAccountHasNativeGas();
 
       const amountInWei = parseUnits(amount.toString(), USDC_DECIMALS);
       const poolAddress = AAVE_POOL_ADDRESS as `0x${string}`;
@@ -102,36 +215,56 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
 
       // Build UserOp options - only include paymaster if enabled
       // Don't set gas parameters manually when using paymaster, let it calculate automatically
-      const buildUserOpOptions = usePaymaster
-        ? {
-            paymasterServiceData: {
-              mode: "SPONSORED" as const,
-            },
-          }
+      let buildUserOpOptions: any = paymasterEnabled
+        ? { paymasterServiceData: { mode: "SPONSORED" as const } }
         : undefined;
+
+      const buildUserOp = async (txs: Transaction[]) => {
+        try {
+          if (!buildUserOpOptions) {
+            // self-paid mode: bump fees
+            const fee = await getSelfPaidFeeOverrides();
+            return await smartAccount.buildUserOp(txs, fee as any);
+          }
+          return await smartAccount.buildUserOp(txs, buildUserOpOptions);
+        } catch (e) {
+          if (paymasterEnabled && allowPaymasterFallback && isPaymasterV7Error(e)) {
+            // Paymaster endpoint/key/config is incompatible or temporarily down.
+            setDepositStatus(
+              "Paymaster failed (417 / V7 response). Falling back to self-paid gas (smart account needs Sepolia ETH)...",
+            );
+            await assertSmartAccountHasNativeGas();
+            buildUserOpOptions = undefined;
+            const fee = await getSelfPaidFeeOverrides();
+            return await smartAccount.buildUserOp(txs, fee as any);
+          }
+          throw e;
+        }
+      };
 
       // Build and send approve
       setDepositStatus("Building approve transaction...");
-      const approveUserOp = await smartAccount.buildUserOp([approveTx], buildUserOpOptions as any);
+      const approveUserOp = await buildUserOp([approveTx]);
 
       setDepositStatus("Sending approve transaction...");
-      const approveResponse = await smartAccount.sendUserOp(approveUserOp);
-
-      setDepositStatus("Waiting for approve confirmation...");
-      await approveResponse.wait();
+      const approveUserOpHash = await sendUserOpViaBundler(approveUserOp);
+      setTxHash(String(approveUserOpHash));
+      setDepositStatus("Waiting for approve confirmation (polling bundler)...");
+      await waitForUserOpReceiptViaBundler(String(approveUserOpHash));
 
       // Build and send deposit
       setDepositStatus("Building deposit transaction...");
-      const depositUserOp = await smartAccount.buildUserOp([depositTx], buildUserOpOptions as any);
+      const depositUserOp = await buildUserOp([depositTx]);
 
       setDepositStatus("Sending deposit transaction...");
-      const depositResponse = await smartAccount.sendUserOp(depositUserOp);
-
-      setDepositStatus("Waiting for deposit confirmation...");
-      const depositReceipt = await depositResponse.wait();
+      const depositUserOpHash = await sendUserOpViaBundler(depositUserOp);
+      setTxHash(String(depositUserOpHash));
+      setDepositStatus("Waiting for deposit confirmation (polling bundler)...");
+      const depositReceipt: any = await waitForUserOpReceiptViaBundler(String(depositUserOpHash));
 
       const finalTxHash =
         (depositReceipt as any)?.transactionHash ??
+        (depositReceipt as any)?.receipt?.transactionHash ??
         (depositReceipt as any)?.userOpHash ??
         (depositReceipt as any)?.hash ??
         null;
@@ -139,7 +272,8 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
       setDepositStatus("Deposit completed!");
     } catch (err: any) {
       console.error("Deposit failed:", err);
-      setDepositStatus(`Deposit failed: ${err.message || String(err)}`);
+      const msg = err?.message || String(err);
+      setDepositStatus(`Deposit failed: ${msg}`);
     } finally {
       setIsDepositing(false);
     }
