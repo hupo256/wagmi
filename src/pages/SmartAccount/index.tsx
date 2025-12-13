@@ -7,9 +7,10 @@ import { useUSDCBalance } from "@/hooks/useUSDC";
 export default function App() {
   const { isConnected } = useAccount();
   const { eoaAddress, smartAccount, smartAccountAddress, loading } = useSmartAccount();
-  const { depositUSDC, isDepositing, txHash } = useAaveDeposit();
-  const { balance: usdcBalance } = useUSDCBalance();
-  const [amount, setAmount] = useState("10");
+  const { depositUSDC, isDepositing, txHash, depositStatus } = useAaveDeposit();
+  const { balance: eoaUsdcBalance } = useUSDCBalance();
+  const { balance: smartUsdcBalance } = useUSDCBalance(smartAccountAddress || undefined);
+  const [amount, setAmount] = useState("1");
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -20,7 +21,7 @@ export default function App() {
       ) : loading ? (
         <p className="text-gray-700">⏳ Creating Smart Account...</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-1">
           <p className="text-gray-800">
             <strong>EOA:</strong> {eoaAddress}
           </p>
@@ -29,10 +30,13 @@ export default function App() {
           </p>
 
           <p className="text-gray-800">
-            <strong>USDC Balance:</strong> {usdcBalance}
+            <strong>EOA USDC Balance:</strong> {eoaUsdcBalance}
+          </p>
+          <p className="text-gray-800">
+            <strong>Smart Account USDC Balance:</strong> {smartUsdcBalance}
           </p>
 
-          <div className="mt-6 flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-4">
             <input
               type="number"
               value={amount}
@@ -53,7 +57,15 @@ export default function App() {
 
           {txHash && <p className="mt-4 text-green-600">✅ UserOp: {txHash.substring(0, 10)}...</p>}
 
-          <div className="mt-8 text-sm text-gray-600">
+          {depositStatus && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-md">
+              <p className="text-sm text-gray-700">
+                <strong>Status:</strong> {depositStatus}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-8 text-sm text-gray-600 hidden">
             <p className="font-medium">💡 Prerequisites:</p>
             <ul className="mt-2 space-y-2">
               <li>
