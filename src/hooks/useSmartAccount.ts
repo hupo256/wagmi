@@ -32,7 +32,12 @@ export const useSmartAccount = () => {
     try {
       const { createSmartAccountClient } = await import("@biconomy/account");
       const bundlerUrl = BICONOMY_CONFIG?.bundlerUrl || DEFAULT_BUNDLER_URL;
-      const paymasterUrl = normalizePaymasterUrl(BICONOMY_CONFIG?.paymasterUrl || DEFAULT_PAYMASTER_URL);
+      // Paymaster is disabled by default because misconfigured paymasters crash the SDK in some paths.
+      // Enable only when explicitly requested via env flag.
+      const enablePaymaster = (import.meta as any)?.env?.VITE_ENABLE_PAYMASTER === "true";
+      const paymasterUrl = enablePaymaster
+        ? normalizePaymasterUrl(BICONOMY_CONFIG?.paymasterUrl || DEFAULT_PAYMASTER_URL)
+        : undefined;
 
       const config = {
         signer: walletClient!,

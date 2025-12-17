@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWalletClient } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
 import { erc20Abi } from "viem";
 import { AAVE_POOL_ADDRESS, USDC_ADDRESS, USDC_DECIMALS } from "@/config/aave";
@@ -8,10 +9,12 @@ import type { Transaction } from "@biconomy/account";
 
 export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
   const { smartAccount } = useSmartAccount();
+  const { data: walletClient } = useWalletClient();
   const [isDepositing, setIsDepositing] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [depositStatus, setDepositStatus] = useState<string | null>(null);
-  const paymasterEnabled = opts?.forcePaymaster ?? !!BICONOMY_CONFIG?.paymasterUrl;
+  // Paymaster is OFF by default. Turn it on only when explicitly forcing it.
+  const paymasterEnabled = opts?.forcePaymaster === true;
   // If the caller explicitly forces paymaster, we won't silently fall back.
   const allowPaymasterFallback = opts?.forcePaymaster === true ? false : true;
 
@@ -26,9 +29,36 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
     );
   };
 
+  const isLikelyPaymasterBuildError = (err: unknown) => {
+    const msg = (err as any)?.message ? String((err as any).message) : String(err);
+    // We've seen this specific crash when the paymaster/gas estimator returns an unexpected payload.
+    if (msg.includes("Cannot destructure property 'callGasLimit'")) return true;
+    if (msg.toLowerCase().includes("paymaster")) return true;
+    if (msg.includes("gas estimator")) return true;
+    if (msg.includes("Expectation Failed") || msg.includes("417")) return true;
+    return false;
+  };
+
   // Keep aligned with `useSmartAccountClient.ts` / `useSmartAccount.ts` defaults.
   const BUNDLER_URL_FALLBACK = "https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd";
   const bundlerUrl = BICONOMY_CONFIG?.bundlerUrl || BUNDLER_URL_FALLBACK;
+
+  // A paymaster-less smart account client used for "self-paid gas" buildUserOp, to avoid SDK paymaster codepaths.
+  let selfPaidClientPromise: Promise<any> | null = null;
+  const getSelfPaidSmartAccountClient = async () => {
+    if (selfPaidClientPromise) return selfPaidClientPromise;
+    if (!walletClient) throw new Error("Wallet client not ready (connect wallet first)");
+    selfPaidClientPromise = (async () => {
+      const { createSmartAccountClient } = await import("@biconomy/account");
+      // Intentionally omit paymasterUrl to force self-paid path inside SDK.
+      const sa = await createSmartAccountClient({
+        signer: walletClient,
+        bundlerUrl,
+      } as any);
+      return sa as any;
+    })();
+    return selfPaidClientPromise;
+  };
 
   const bundlerRpc = async (method: string, params: any[]) => {
     const res = await fetch(bundlerUrl, {
@@ -87,6 +117,19 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
     return {
       maxFeePerGas: maxFeePerGas.toString(),
       maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+    };
+  };
+
+  const getManualGasLimits = () => {
+    // Conservative defaults to bypass flaky bundler gas-estimator responses.
+    // Values are intentionally generous for Sepolia.
+    return {
+      callGasLimit: "800000",
+      verificationGasLimit: "800000",
+      preVerificationGas: "120000",
+      // v0.7 paymaster gas fields (harmless if ignored by SDK/version)
+      paymasterVerificationGasLimit: "0",
+      paymasterPostOpGasLimit: "0",
     };
   };
 
@@ -224,19 +267,49 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
           if (!buildUserOpOptions) {
             // self-paid mode: bump fees
             const fee = await getSelfPaidFeeOverrides();
-            return await smartAccount.buildUserOp(txs, fee as any);
+            const sa = await getSelfPaidSmartAccountClient().catch(() => smartAccount);
+            return await (sa as any).buildUserOp(txs, { ...(fee as any) } as any);
           }
           return await smartAccount.buildUserOp(txs, buildUserOpOptions);
         } catch (e) {
-          if (paymasterEnabled && allowPaymasterFallback && isPaymasterV7Error(e)) {
+          // If bundler gas estimation returns an unexpected payload, the SDK can crash with a destructure TypeError.
+          // Retry with explicit gas limit fields to bypass estimation.
+          const msg = (e as any)?.message ? String((e as any).message) : String(e);
+          if (msg.includes("Cannot destructure property 'callGasLimit'")) {
+            setDepositStatus("Gas estimation failed. Retrying with manual gas limits...");
+            const fee = await getSelfPaidFeeOverrides();
+            const gasLimits = getManualGasLimits();
+            const sa = await getSelfPaidSmartAccountClient().catch(() => smartAccount);
+            return await (sa as any).buildUserOp(txs, { ...(fee as any), ...(gasLimits as any) } as any);
+          }
+
+          if (paymasterEnabled && allowPaymasterFallback && (isPaymasterV7Error(e) || isLikelyPaymasterBuildError(e))) {
             // Paymaster endpoint/key/config is incompatible or temporarily down.
-            setDepositStatus(
-              "Paymaster failed (417 / V7 response). Falling back to self-paid gas (smart account needs Sepolia ETH)...",
-            );
+            setDepositStatus("Paymaster failed. Falling back to self-paid gas (smart account needs Sepolia ETH)...");
             await assertSmartAccountHasNativeGas();
             buildUserOpOptions = undefined;
             const fee = await getSelfPaidFeeOverrides();
-            return await smartAccount.buildUserOp(txs, fee as any);
+            const sa = await getSelfPaidSmartAccountClient().catch(() => smartAccount);
+            return await (sa as any).buildUserOp(txs, { ...(fee as any), ...(getManualGasLimits() as any) } as any);
+          }
+          throw e;
+        }
+      };
+
+      // Helper: build & send a UserOp, retrying with manual gas limits if bundler/gas-estimator fails
+      const sendUserOpWithRetry = async (txs: Transaction[]) => {
+        try {
+          const userOp = await buildUserOp(txs);
+          return await sendUserOpViaBundler(userOp);
+        } catch (e: any) {
+          const msg = e?.message || String(e);
+          if (msg.includes("Cannot destructure property 'callGasLimit'") || isLikelyPaymasterBuildError(e)) {
+            setDepositStatus("Bundler gas estimation failed. Retrying with manual gas limits...");
+            const fee = await getSelfPaidFeeOverrides();
+            const gasLimits = getManualGasLimits();
+            const sa = await getSelfPaidSmartAccountClient().catch(() => smartAccount);
+            const userOp2 = await (sa as any).buildUserOp(txs, { ...(fee as any), ...(gasLimits as any) } as any);
+            return await sendUserOpViaBundler(userOp2);
           }
           throw e;
         }
@@ -244,20 +317,14 @@ export function useAaveDeposit(opts?: { forcePaymaster?: boolean }) {
 
       // Build and send approve
       setDepositStatus("Building approve transaction...");
-      const approveUserOp = await buildUserOp([approveTx]);
-
-      setDepositStatus("Sending approve transaction...");
-      const approveUserOpHash = await sendUserOpViaBundler(approveUserOp);
+      const approveUserOpHash = await sendUserOpWithRetry([approveTx]);
       setTxHash(String(approveUserOpHash));
       setDepositStatus("Waiting for approve confirmation (polling bundler)...");
       await waitForUserOpReceiptViaBundler(String(approveUserOpHash));
 
       // Build and send deposit
       setDepositStatus("Building deposit transaction...");
-      const depositUserOp = await buildUserOp([depositTx]);
-
-      setDepositStatus("Sending deposit transaction...");
-      const depositUserOpHash = await sendUserOpViaBundler(depositUserOp);
+      const depositUserOpHash = await sendUserOpWithRetry([depositTx]);
       setTxHash(String(depositUserOpHash));
       setDepositStatus("Waiting for deposit confirmation (polling bundler)...");
       const depositReceipt: any = await waitForUserOpReceiptViaBundler(String(depositUserOpHash));

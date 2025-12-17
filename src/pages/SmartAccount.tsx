@@ -8,7 +8,7 @@ import { useUSDCBalance } from "@/hooks/useUSDC";
 export default function App() {
   const { isConnected } = useAccount();
   const { eoaAddress, smartAccountAddress, loading } = useSmartAccount();
-  const { depositUSDC, isDepositing, txHash, depositStatus } = useAaveDeposit();
+  const { depositUSDC, isDepositing, txHash, depositStatus } = useAaveDeposit({ forcePaymaster: false });
   const { balance: eoaUsdcBalance } = useUSDCBalance();
   const { balance: smartUsdcBalance } = useUSDCBalance(smartAccountAddress || undefined);
   const { data: smartEthBalance } = useBalance({
