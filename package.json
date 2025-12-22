@@ -17,7 +17,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.25.0",
   "dependencies": {
-    "@biconomy/account": "^4.5.7",
+    "@biconomy/account": "4.1.0",
     "@biconomy/bundler": "^3.1.4",
     "@biconomy/common": "^3.1.4",
     "@biconomy/paymaster": "^3.1.4",
@@ -27,8 +27,8 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.1",
     "react-tracked": "^2.0.1",
-    "viem": "^2.21.10",
-    "wagmi": "^2.12.8",
+    "viem": "^2.0.0",
+    "wagmi": "^2.0.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
